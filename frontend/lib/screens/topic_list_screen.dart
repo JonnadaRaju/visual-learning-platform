@@ -140,11 +140,13 @@ class TopicListScreen extends StatelessWidget {
                                   const SizedBox(height: 6),
                                   Text(
                                     topic.name,
-                                    fontSize: 11,
                                     textAlign: TextAlign.center,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    color: Colors.white,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ],
                               ),
