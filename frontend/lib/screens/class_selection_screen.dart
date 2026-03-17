@@ -45,7 +45,7 @@ class ClassSelectionScreen extends StatelessWidget {
                 crossAxisCount: 3,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 2.8,
+                childAspectRatio: 3.2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: classes.map((option) {

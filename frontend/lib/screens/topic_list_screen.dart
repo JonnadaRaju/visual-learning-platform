@@ -91,7 +91,7 @@ class TopicListScreen extends StatelessWidget {
                         crossAxisCount: 4,
                         crossAxisSpacing: 8,
                         mainAxisSpacing: 8,
-                        childAspectRatio: 1.0,
+                        childAspectRatio: 1.3,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         children: entry.value.map((topic) {

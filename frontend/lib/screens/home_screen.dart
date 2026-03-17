@@ -85,7 +85,7 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 2.2,
+                  childAspectRatio: 2.8,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   children: subjectCatalog.map((subject) {
