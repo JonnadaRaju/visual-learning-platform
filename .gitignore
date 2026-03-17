@@ -12,14 +12,13 @@ frontend/ios/
 frontend/linux/
 frontend/macos/
 frontend/windows/
-frontend/web/
 frontend/test/
 frontend/analysis_options.yaml
 frontend/devtools_options.yaml
-frontend/pubspec.lock
 venv/
 __pycache__/
 *.pyc
 .env
 backend/.env
 .env.example
+backend/.env.local
