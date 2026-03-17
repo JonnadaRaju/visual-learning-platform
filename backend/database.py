@@ -1,18 +1,40 @@
 from __future__ import annotations
 
 import contextlib
-import logging
 import uuid
+from dataclasses import dataclass, field
 
 import psycopg2
 from psycopg2.extras import Json, RealDictCursor
 
 from backend.config import get_settings
-from backend.models.concept import SimulationDefinition, SimulationParameter
-from backend.models.interaction import SimulationRun
 
-logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+@dataclass
+class SimulationParameter:
+    id: uuid.UUID
+    simulation_id: uuid.UUID
+    param_name: str
+    param_label: str
+    unit: str
+    min_value: float
+    max_value: float
+    default_value: float
+    step_size: float
+
+
+@dataclass
+class SimulationDefinition:
+    id: uuid.UUID
+    category: str
+    name: str
+    slug: str
+    description: str
+    is_active: bool
+    parameters: list[SimulationParameter] = field(default_factory=list)
+
 
 def get_connection():
     try:
@@ -126,13 +148,13 @@ def mark_run_saved(session_id: str, run_id: uuid.UUID) -> bool:
         connection.commit()
     return bool(row and row['is_saved'])
 
-def fetch_runs(session_id: str) -> list[SimulationRun]:
+def fetch_runs(session_id: str) -> list[dict]:
     query = "SELECT id, session_id, simulation_slug, input_params, result_payload, is_saved, created_at FROM simulation_runs WHERE session_id = %s ORDER BY created_at DESC"
     with get_db_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(query, (session_id,))
             rows = cursor.fetchall()
-    return [SimulationRun(id=r['id'], session_id=r['session_id'], simulation_slug=r['simulation_slug'], input_params=r['input_params'], result_payload=r['result_payload'], is_saved=r['is_saved'], created_at=r['created_at']) for r in rows]
+    return [{'id': r['id'], 'session_id': r['session_id'], 'simulation_slug': r['simulation_slug'], 'input_params': r['input_params'], 'result_payload': r['result_payload'], 'is_saved': r['is_saved'], 'created_at': r['created_at']} for r in rows]
 
 def fetch_run_stats(session_id: str) -> dict:
     query = "SELECT COUNT(*) AS total_runs, COUNT(*) FILTER (WHERE is_saved = TRUE) AS saved_runs, COUNT(DISTINCT simulation_slug) AS simulations_explored, MAX(created_at) AS last_active FROM simulation_runs WHERE session_id = %s"

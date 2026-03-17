@@ -10,7 +10,6 @@ from backend.config import get_settings
 from backend.database import initialize_database, verify_database_connection
 from backend.routes.compute import router as compute_router
 from backend.routes.concepts import router as simulations_router
-from backend.routes.history import router as runs_router
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s [%(name)s] %(message)s')
 settings = get_settings()
@@ -27,7 +26,6 @@ app.add_middleware(
 )
 app.include_router(simulations_router)
 app.include_router(compute_router)
-app.include_router(runs_router)
 
 @app.on_event('startup')
 def startup() -> None:
