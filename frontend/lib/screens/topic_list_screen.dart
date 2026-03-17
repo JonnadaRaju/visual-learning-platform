@@ -89,9 +89,9 @@ class TopicListScreen extends StatelessWidget {
                       const SizedBox(height: 14),
                       GridView.count(
                         crossAxisCount: 4,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 1.3,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.0,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         children: entry.value.map((topic) {
@@ -121,30 +121,30 @@ class TopicListScreen extends StatelessWidget {
                               ),
                               padding: const EdgeInsets.all(10),
                               child: Column(
+                                mainAxisSize: MainAxisSize.min,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Container(
-                                    width: 44,
-                                    height: 44,
+                                    width: 40,
+                                    height: 40,
                                     decoration: BoxDecoration(
-                                      color: subject.accent.withValues(alpha: 0.18),
+                                      color: subject.accent.withOpacity(0.18),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Icon(
                                       _topicIcon(topic.name),
-                                      size: 22,
+                                      size: 20,
                                       color: subject.accent,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 6),
                                   Text(
                                     topic.name,
+                                    fontSize: 11,
                                     textAlign: TextAlign.center,
                                     maxLines: 2,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.white,
-                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    color: Colors.white,
                                   ),
                                 ],
                               ),
