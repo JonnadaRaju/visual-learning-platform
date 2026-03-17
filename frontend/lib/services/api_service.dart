@@ -41,14 +41,16 @@ class ApiService {
 
   Future<WaveSuperpositionResult> runSuperposition(List<Map<String, dynamic>> waves) async {
     final response = await _request(
-      () => _dio.post<Map<String, dynamic>>('/simulations/waves/superposition', data: {'waves': waves}),
+      () => _dio.post<Map<String, dynamic>>(
+          '/simulations/waves/superposition', data: {'waves': waves}),
     );
     return WaveSuperpositionResult.fromJson(response.data!);
   }
 
   Future<CircuitResult> runCircuit(List<Map<String, dynamic>> components) async {
     final response = await _request(
-      () => _dio.post<Map<String, dynamic>>('/simulations/circuits', data: {'components': components}),
+      () => _dio.post<Map<String, dynamic>>(
+          '/simulations/circuits', data: {'components': components}),
     );
     return CircuitResult.fromJson(response.data!);
   }
@@ -77,21 +79,15 @@ class ApiService {
       final detail = error.response?.data is Map<String, dynamic>
           ? (error.response?.data as Map<String, dynamic>)['detail']?.toString()
           : null;
-      if (error.type == DioExceptionType.connectionError || error.type == DioExceptionType.connectionTimeout) {
-        throw Exception('Network error: backend is unreachable at ${AppConfig.apiBaseUrl}');
+      if (error.type == DioExceptionType.connectionError ||
+          error.type == DioExceptionType.connectionTimeout) {
+        throw Exception(
+            'Network error: backend is unreachable at ${AppConfig.apiBaseUrl}');
       }
-      if (status == 400) {
-        throw Exception(detail ?? 'Invalid request');
-      }
-      if (status == 404) {
-        throw Exception(detail ?? 'Requested resource was not found');
-      }
-      if (status == 422) {
-        throw Exception(detail ?? 'Input validation failed');
-      }
-      if (status == 500) {
-        throw Exception('Server error: please check backend logs');
-      }
+      if (status == 400) throw Exception(detail ?? 'Invalid request');
+      if (status == 404) throw Exception(detail ?? 'Requested resource was not found');
+      if (status == 422) throw Exception(detail ?? 'Input validation failed');
+      if (status == 500) throw Exception('Server error: please check backend logs');
       throw Exception(detail ?? error.message ?? 'Request failed');
     }
   }
