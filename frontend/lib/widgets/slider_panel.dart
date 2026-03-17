@@ -24,7 +24,6 @@ class SliderFieldData {
 
 class SliderSectionData {
   const SliderSectionData({required this.title, required this.fields});
-
   final String title;
   final List<SliderFieldData> fields;
 }
@@ -52,7 +51,8 @@ class SliderPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(section.title, style: Theme.of(context).textTheme.titleMedium),
+                    Text(section.title,
+                        style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 12),
                     ...section.fields.map(
                       (field) => Padding(
@@ -63,16 +63,22 @@ class SliderPanel extends StatelessWidget {
                             Row(
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    field.label,
-                                    style: Theme.of(context).textTheme.bodyLarge,
-                                  ),
+                                  child: Text(field.label,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge),
                                 ),
                                 Text(
-                                  '${field.value.toStringAsFixed(field.step < 1 ? 1 : 0)} ${field.unit}'.trim(),
-                                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                        color: field.color ?? Theme.of(context).colorScheme.primary,
-                                      ),
+                                  '${field.value.toStringAsFixed(field.step < 1 ? 1 : 0)} ${field.unit}'
+                                      .trim(),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                          color: field.color ??
+                                              Theme.of(context)
+                                                  .colorScheme
+                                                  .primary),
                                 ),
                               ],
                             ),
@@ -80,14 +86,22 @@ class SliderPanel extends StatelessWidget {
                               data: SliderTheme.of(context).copyWith(
                                 activeTrackColor: field.color,
                                 thumbColor: field.color,
-                                overlayColor: (field.color ?? Theme.of(context).colorScheme.primary).withValues(alpha: 0.15),
+                                overlayColor:
+                                    (field.color ??
+                                            Theme.of(context)
+                                                .colorScheme
+                                                .primary)
+                                        .withValues(alpha: 0.15),
                               ),
                               child: Slider(
                                 value: field.value.clamp(field.min, field.max),
                                 min: field.min,
                                 max: field.max,
-                                divisions: ((field.max - field.min) / field.step).round(),
-                                onChanged: (value) => onChanged((field.id, value)),
+                                divisions:
+                                    ((field.max - field.min) / field.step)
+                                        .round(),
+                                onChanged: (value) =>
+                                    onChanged((field.id, value)),
                               ),
                             ),
                           ],
@@ -103,4 +117,3 @@ class SliderPanel extends StatelessWidget {
     );
   }
 }
-
