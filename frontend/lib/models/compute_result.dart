@@ -219,6 +219,8 @@ class RunStats {
         totalRuns: json['total_runs'] as int,
         savedRuns: json['saved_runs'] as int,
         simulationsExplored: json['simulations_explored'] as int,
-        lastActive: json['last_active'] == null ? null : DateTime.parse(json['last_active'] as String),
+        lastActive: json['last_active'] == null
+            ? null
+            : DateTime.parse(json['last_active'] as String),
       );
 }
