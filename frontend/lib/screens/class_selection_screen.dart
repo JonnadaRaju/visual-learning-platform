@@ -43,8 +43,8 @@ class ClassSelectionScreen extends StatelessWidget {
               const SizedBox(height: 24),
               GridView.count(
                 crossAxisCount: 3,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
                 childAspectRatio: 2.8,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
