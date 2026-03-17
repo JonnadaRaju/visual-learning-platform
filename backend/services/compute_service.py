@@ -1,21 +1,45 @@
 from __future__ import annotations
 
-import logging
+import hashlib
+import json
 import math
 from collections import defaultdict
+from datetime import datetime
 from typing import Any
+import uuid
 
 import numpy as np
 from fastapi import HTTPException, status
+from pydantic import BaseModel
 
 from backend.cache import cache_get, cache_set
-from backend.database import fetch_simulation_by_slug, insert_run, mark_run_saved
+from backend.database import fetch_simulation_by_slug, fetch_runs, fetch_run_stats, insert_run, mark_run_saved
 from backend.schemas.compute import CircuitRequest, ProjectileRequest, WaveRequest, WaveSuperpositionRequest
-from backend.schemas.response import BranchCurrent, CircuitResponse, NodeVoltage, Point3D, ProjectileResponse, WaveResponse, WaveSeries, WaveSuperpositionResponse
-from backend.services.cache_service import build_cache_key
+from backend.schemas.response import (
+    BranchCurrent,
+    CircuitResponse,
+    NodeVoltage,
+    Point3D,
+    ProjectileResponse,
+    SaveRunResponse,
+    WaveResponse,
+    WaveSeries,
+    WaveSuperpositionResponse,
+)
 
-logger = logging.getLogger(__name__)
 TTL_SECONDS = {'projectile-motion': 600, 'waves-shm': 300, 'electric-circuits': 900}
+
+
+def parse_uuid(value: str, field_name: str = 'value') -> uuid.UUID:
+    try:
+        return uuid.UUID(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{field_name} must be a valid UUID') from exc
+
+
+def _build_cache_key(prefix: str, payload: dict) -> str:
+    normalized = json.dumps(payload, sort_keys=True, separators=(',', ':'))
+    return f'{prefix}:{hashlib.sha256(normalized.encode()).hexdigest()}'
 
 
 def _ensure_simulation(slug: str):
@@ -29,7 +53,7 @@ def compute_projectile(session_id: str, payload: ProjectileRequest) -> Projectil
     slug = 'projectile-motion'
     _ensure_simulation(slug)
     body = payload.model_dump()
-    cache_key = build_cache_key(slug, body)
+    cache_key = _build_cache_key(slug, body)
     cached = cache_get(cache_key)
     if cached:
         run_id = insert_run(session_id, slug, body, cached)
@@ -86,7 +110,7 @@ def compute_wave(session_id: str, payload: WaveRequest) -> WaveResponse:
     slug = 'waves-shm'
     _ensure_simulation(slug)
     body = payload.model_dump()
-    cache_key = build_cache_key(f'{slug}:single', body)
+    cache_key = _build_cache_key(f'{slug}:single', body)
     cached = cache_get(cache_key)
     if cached:
         run_id = insert_run(session_id, slug, body, cached)
@@ -102,7 +126,7 @@ def compute_wave_superposition(session_id: str, payload: WaveSuperpositionReques
     slug = 'waves-shm'
     _ensure_simulation(slug)
     body = payload.model_dump()
-    cache_key = build_cache_key(f'{slug}:superposition', body)
+    cache_key = _build_cache_key(f'{slug}:superposition', body)
     cached = cache_get(cache_key)
     if cached:
         run_id = insert_run(session_id, slug, body, cached)
@@ -145,7 +169,7 @@ def compute_circuit(session_id: str, payload: CircuitRequest) -> CircuitResponse
     slug = 'electric-circuits'
     _ensure_simulation(slug)
     body = payload.model_dump()
-    cache_key = build_cache_key(slug, body)
+    cache_key = _build_cache_key(slug, body)
     cached = cache_get(cache_key)
     if cached:
         run_id = insert_run(session_id, slug, body, cached)
@@ -244,7 +268,15 @@ def compute_circuit(session_id: str, payload: CircuitRequest) -> CircuitResponse
     return CircuitResponse(run_id=run_id, cache_hit=False, **result)
 
 
-def save_run(session_id: str, run_id):
+def save_run(session_id: str, run_id: uuid.UUID) -> SaveRunResponse:
     if not mark_run_saved(session_id, run_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Run not found')
-    return {'run_id': run_id, 'is_saved': True}
+    return SaveRunResponse(run_id=run_id, is_saved=True)
+
+
+def get_runs(session_id: str):
+    return fetch_runs(session_id)
+
+
+def get_run_stats(session_id: str):
+    return fetch_run_stats(session_id)
