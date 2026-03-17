@@ -36,11 +36,13 @@ class CircuitVisualComponent {
   final Size size;
 
   Offset terminalA() => Offset(position.dx, position.dy + size.height / 2);
-  Offset terminalB() => Offset(position.dx + size.width, position.dy + size.height / 2);
+  Offset terminalB() =>
+      Offset(position.dx + size.width, position.dy + size.height / 2);
 }
 
 class CircuitVisualWire {
-  const CircuitVisualWire({required this.id, required this.start, required this.end, this.speed = 0});
+  const CircuitVisualWire(
+      {required this.id, required this.start, required this.end, this.speed = 0});
 
   final String id;
   final Offset start;
@@ -81,13 +83,16 @@ class AnimationCanvas extends StatefulWidget {
 
 enum AnimationScene { projectile, waves, circuit }
 
-class _AnimationCanvasState extends State<AnimationCanvas> with SingleTickerProviderStateMixin {
+class _AnimationCanvasState extends State<AnimationCanvas>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 4))
+          ..repeat();
   }
 
   @override
@@ -152,7 +157,10 @@ class _AnimationCanvasState extends State<AnimationCanvas> with SingleTickerProv
 }
 
 class _ProjectilePainter extends CustomPainter {
-  _ProjectilePainter({required this.points, required this.progress, required this.colorScheme});
+  _ProjectilePainter(
+      {required this.points,
+      required this.progress,
+      required this.colorScheme});
 
   final List<PlotPoint> points;
   final double progress;
@@ -165,48 +173,48 @@ class _ProjectilePainter extends CustomPainter {
     final groundPaint = Paint()
       ..color = const Color(0xFF355E3B)
       ..strokeWidth = 3;
-    canvas.drawLine(Offset(0, size.height - 28), Offset(size.width, size.height - 28), groundPaint);
+    canvas.drawLine(Offset(0, size.height - 28),
+        Offset(size.width, size.height - 28), groundPaint);
     if (points.isEmpty) {
       _drawCenterLabel(canvas, size, 'Run the simulation to view the arc.');
       return;
     }
-    final maxX = points.map((point) => point.x).reduce(math.max);
-    final maxY = points.map((point) => point.y).reduce(math.max);
+    final maxX = points.map((p) => p.x).reduce(math.max);
+    final maxY = points.map((p) => p.y).reduce(math.max);
     final path = Path();
-    for (var index = 0; index < points.length; index++) {
-      final point = points[index];
-      final dx = 24 + (point.x / (maxX == 0 ? 1 : maxX)) * (size.width - 48);
-      final dy = size.height - 28 - (point.y / (maxY == 0 ? 1 : maxY)) * (size.height - 64);
-      if (index == 0) {
-        path.moveTo(dx, dy);
-      } else {
-        path.lineTo(dx, dy);
-      }
+    for (var i = 0; i < points.length; i++) {
+      final p = points[i];
+      final dx = 24 + (p.x / (maxX == 0 ? 1 : maxX)) * (size.width - 48);
+      final dy =
+          size.height - 28 - (p.y / (maxY == 0 ? 1 : maxY)) * (size.height - 64);
+      i == 0 ? path.moveTo(dx, dy) : path.lineTo(dx, dy);
     }
     canvas.drawPath(
-      path,
-      Paint()
-        ..color = colorScheme.primary
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4,
-    );
-    final animatedIndex = (progress * (points.length - 1)).round().clamp(0, points.length - 1);
-    final ball = points[animatedIndex];
-    final ballX = 24 + (ball.x / (maxX == 0 ? 1 : maxX)) * (size.width - 48);
-    final ballY = size.height - 28 - (ball.y / (maxY == 0 ? 1 : maxY)) * (size.height - 64);
-    canvas.drawCircle(
-      Offset(ballX, ballY),
-      10,
-      Paint()..color = colorScheme.secondary,
-    );
+        path,
+        Paint()
+          ..color = colorScheme.primary
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4);
+    final ai = (progress * (points.length - 1)).round().clamp(0, points.length - 1);
+    final ball = points[ai];
+    final bx = 24 + (ball.x / (maxX == 0 ? 1 : maxX)) * (size.width - 48);
+    final by = size.height -
+        28 -
+        (ball.y / (maxY == 0 ? 1 : maxY)) * (size.height - 64);
+    canvas.drawCircle(Offset(bx, by), 10,
+        Paint()..color = colorScheme.secondary);
   }
 
   @override
-  bool shouldRepaint(covariant _ProjectilePainter oldDelegate) => oldDelegate.points != points || oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _ProjectilePainter old) =>
+      old.points != points || old.progress != progress;
 }
 
 class _WavePainter extends CustomPainter {
-  _WavePainter({required this.series, required this.progress, required this.colorScheme});
+  _WavePainter(
+      {required this.series,
+      required this.progress,
+      required this.colorScheme});
 
   final List<AnimatedWaveSeries> series;
   final double progress;
@@ -214,63 +222,67 @@ class _WavePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFF5F3EA));
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = const Color(0xFFF5F3EA));
     final axisPaint = Paint()
       ..color = colorScheme.outline
       ..strokeWidth = 1.2;
-    canvas.drawLine(Offset(20, size.height / 2), Offset(size.width - 20, size.height / 2), axisPaint);
-    canvas.drawLine(Offset(24, 20), Offset(24, size.height - 20), axisPaint);
+    canvas.drawLine(Offset(20, size.height / 2),
+        Offset(size.width - 20, size.height / 2), axisPaint);
+    canvas.drawLine(
+        Offset(24, 20), Offset(24, size.height - 20), axisPaint);
     if (series.isEmpty) {
       _drawCenterLabel(canvas, size, 'Adjust sliders to animate the wave.');
       return;
     }
     final maxY = series
-        .expand((item) => item.points)
-        .map((point) => point.y.abs())
+        .expand((s) => s.points)
+        .map((p) => p.y.abs())
         .fold<double>(1, math.max);
     for (final item in series) {
-      if (item.points.isEmpty) {
-        continue;
-      }
+      if (item.points.isEmpty) continue;
       final offset = (progress * item.points.length).round();
       final path = Path();
-      for (var index = 0; index < item.points.length; index++) {
-        final point = item.points[(index + offset) % item.points.length];
-        final dx = 24 + (index / (item.points.length - 1)) * (size.width - 48);
-        final dy = size.height / 2 - (point.y / maxY) * (size.height / 2 - 28);
-        if (index == 0) {
-          path.moveTo(dx, dy);
-        } else {
-          path.lineTo(dx, dy);
-        }
+      for (var i = 0; i < item.points.length; i++) {
+        final p = item.points[(i + offset) % item.points.length];
+        final dx =
+            24 + (i / (item.points.length - 1)) * (size.width - 48);
+        final dy =
+            size.height / 2 - (p.y / maxY) * (size.height / 2 - 28);
+        i == 0 ? path.moveTo(dx, dy) : path.lineTo(dx, dy);
       }
       canvas.drawPath(
-        path,
-        Paint()
-          ..color = item.color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = item.highlight ? 4 : 2.5,
-      );
+          path,
+          Paint()
+            ..color = item.color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = item.highlight ? 4 : 2.5);
     }
-    final labelPainter = TextPainter(textDirection: TextDirection.ltr);
+    final tp = TextPainter(textDirection: TextDirection.ltr);
     var y = 16.0;
     for (final item in series) {
-      labelPainter.text = TextSpan(
-        text: item.label,
-        style: TextStyle(color: item.color, fontSize: 12, fontWeight: FontWeight.w600),
-      );
-      labelPainter.layout();
-      labelPainter.paint(canvas, Offset(size.width - labelPainter.width - 14, y));
-      y += labelPainter.height + 6;
+      tp.text = TextSpan(
+          text: item.label,
+          style: TextStyle(
+              color: item.color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600));
+      tp.layout();
+      tp.paint(canvas, Offset(size.width - tp.width - 14, y));
+      y += tp.height + 6;
     }
   }
 
   @override
-  bool shouldRepaint(covariant _WavePainter oldDelegate) => oldDelegate.series != series || oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _WavePainter old) =>
+      old.series != series || old.progress != progress;
 }
 
 class _CircuitPainter extends CustomPainter {
-  _CircuitPainter({required this.wires, required this.progress, required this.colorScheme});
+  _CircuitPainter(
+      {required this.wires,
+      required this.progress,
+      required this.colorScheme});
 
   final List<CircuitVisualWire> wires;
   final double progress;
@@ -278,7 +290,8 @@ class _CircuitPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFEEF0F8));
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = const Color(0xFFEEF0F8));
     final gridPaint = Paint()
       ..color = colorScheme.outlineVariant.withValues(alpha: 0.35)
       ..strokeWidth = 1;
@@ -289,46 +302,48 @@ class _CircuitPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
     if (wires.isEmpty) {
-      _drawCenterLabel(canvas, size, 'Tap two terminals to create wires.');
+      _drawCenterLabel(
+          canvas, size, 'Tap two terminals to create wires.');
       return;
     }
     for (final wire in wires) {
       canvas.drawLine(
-        wire.start,
-        wire.end,
-        Paint()
-          ..color = colorScheme.primary
-          ..strokeWidth = 4
-          ..strokeCap = StrokeCap.round,
-      );
+          wire.start,
+          wire.end,
+          Paint()
+            ..color = colorScheme.primary
+            ..strokeWidth = 4
+            ..strokeCap = StrokeCap.round);
       final dotCount = math.max(1, (wire.speed.abs() * 4).round());
-      for (var index = 0; index < dotCount; index++) {
-        final shifted = (progress + (index / dotCount)) % 1;
-        final dx = wire.start.dx + (wire.end.dx - wire.start.dx) * shifted;
-        final dy = wire.start.dy + (wire.end.dy - wire.start.dy) * shifted;
+      for (var i = 0; i < dotCount; i++) {
+        final shifted = (progress + (i / dotCount)) % 1;
+        final dx =
+            wire.start.dx + (wire.end.dx - wire.start.dx) * shifted;
+        final dy =
+            wire.start.dy + (wire.end.dy - wire.start.dy) * shifted;
         canvas.drawCircle(
-          Offset(dx, dy),
-          4.5,
-          Paint()..color = colorScheme.tertiary,
-        );
+            Offset(dx, dy), 4.5, Paint()..color = colorScheme.tertiary);
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _CircuitPainter oldDelegate) => oldDelegate.wires != wires || oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _CircuitPainter old) =>
+      old.wires != wires || old.progress != progress;
 }
 
 void _drawCenterLabel(Canvas canvas, Size size, String text) {
   final painter = TextPainter(
     text: TextSpan(
-      text: text,
-      style: const TextStyle(color: Color(0xFF5E6470), fontSize: 15, fontWeight: FontWeight.w600),
-    ),
+        text: text,
+        style: const TextStyle(
+            color: Color(0xFF5E6470),
+            fontSize: 15,
+            fontWeight: FontWeight.w600)),
     textDirection: TextDirection.ltr,
   )..layout(maxWidth: size.width - 40);
-  painter.paint(canvas, Offset((size.width - painter.width) / 2, (size.height - painter.height) / 2));
+  painter.paint(
+      canvas,
+      Offset((size.width - painter.width) / 2,
+          (size.height - painter.height) / 2));
 }
-
-
-
