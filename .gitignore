@@ -20,5 +20,4 @@ __pycache__/
 *.pyc
 .env
 backend/.env
-.env.example
 backend/.env.local
