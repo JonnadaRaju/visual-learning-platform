@@ -14,7 +14,6 @@ import '../widgets/slider_panel.dart';
 
 class ConceptScreen extends ConsumerStatefulWidget {
   const ConceptScreen({super.key, required this.simulation});
-
   final SimulationDefinition simulation;
 
   @override
@@ -22,7 +21,11 @@ class ConceptScreen extends ConsumerStatefulWidget {
 }
 
 class _ConceptScreenState extends ConsumerState<ConceptScreen> {
-  static const _waveColors = [Color(0xFF0F766E), Color(0xFFF97316), Color(0xFF2563EB)];
+  static const _waveColors = [
+    Color(0xFF0F766E),
+    Color(0xFFF97316),
+    Color(0xFF2563EB),
+  ];
 
   late Map<String, double> _values;
   late List<Map<String, double>> _waveInputs;
@@ -43,190 +46,321 @@ class _ConceptScreenState extends ConsumerState<ConceptScreen> {
   @override
   void initState() {
     super.initState();
-    _values = {for (final p in widget.simulation.parameters) p.paramName: p.defaultValue};
-    _waveInputs = List.generate(3, (index) {
-      return {
-        'amplitude': (_values['amplitude'] ?? 20) - index * 4,
-        'frequency': (_values['frequency'] ?? 2) + index * 0.4,
-        'phase': (_values['phase'] ?? 0) + index * 0.6,
-      };
-    });
-    _waveTypes = ['sine', 'cosine', 'sine'];
+    _values = {
+      for (final p in widget.simulation.parameters) p.paramName: p.defaultValue,
+    };
+    _waveInputs = List.generate(
+      3,
+      (_) => {'amplitude': 1.0, 'frequency': 1.0, 'phase': 0.0},
+    );
+    _waveTypes = ['sine', 'sine', 'sine'];
     _components = [
       _CircuitComponentModel(
-        id: 'battery-1',
-        type: 'battery',
-        label: 'Battery',
-        value: 12,
-        position: const Offset(40, 86),
-      ),
+          id: 'bat1', type: 'battery', value: 12, x: 100, y: 200),
       _CircuitComponentModel(
-        id: 'resistor-1',
-        type: 'resistor',
-        label: 'Resistor',
-        value: 6,
-        position: const Offset(270, 86),
-      ),
+          id: 'r1', type: 'resistor', value: 100, x: 300, y: 100),
+      _CircuitComponentModel(
+          id: 'r2', type: 'resistor', value: 150, x: 300, y: 300),
     ];
   }
 
-  bool get _isProjectile => widget.simulation.slug == 'projectile-motion';
-  bool get _isWave => widget.simulation.slug == 'waves-shm';
-  bool get _isCircuit => widget.simulation.slug == 'electric-circuits';
-
-  Future<void> _runSimulation() async {
+  Future<void> _run() async {
     setState(() => _loading = true);
-    final api = ref.read(apiServiceProvider);
     try {
-      if (_isProjectile) {
-        _projectile = await api.runProjectile(_values);
-      } else if (_isWave) {
+      final api = ref.read(apiServiceProvider);
+      final slug = widget.simulation.slug;
+      if (slug == 'projectile-motion') {
+        _projectile = await api.runProjectile({
+          'angle_deg': _values['angle_deg'] ?? 45,
+          'initial_velocity': _values['initial_velocity'] ?? 20,
+          'gravity': _values['gravity'] ?? 9.8,
+          'initial_height': _values['initial_height'] ?? 0,
+        });
+      } else if (slug == 'waves-shm') {
         if (_superMode) {
-          final payload = [
-            for (var index = 0; index < _waveCount; index++)
-              {
-                'amplitude': _waveInputs[index]['amplitude'],
-                'frequency': _waveInputs[index]['frequency'],
-                'phase': _waveInputs[index]['phase'],
-                'wave_type': _waveTypes[index],
-                'label': 'Wave ${index + 1}',
+          _superposition = await api.runSuperposition(
+            List.generate(
+              _waveCount,
+              (i) => {
+                'amplitude': _waveInputs[i]['amplitude'] ?? 1,
+                'frequency': _waveInputs[i]['frequency'] ?? 1,
+                'phase': _waveInputs[i]['phase'] ?? 0,
               },
-          ];
-          _superposition = await api.runSuperposition(payload);
-          _wave = null;
+            ),
+          );
         } else {
           _wave = await api.runWave({
-            'amplitude': _waveInputs[0]['amplitude'],
-            'frequency': _waveInputs[0]['frequency'],
-            'phase': _waveInputs[0]['phase'],
-            'wave_type': _waveTypes[0],
+            'amplitude': _values['amplitude'] ?? 1,
+            'frequency': _values['frequency'] ?? 1,
+            'phase': _values['phase'] ?? 0,
+            'wave_type': _values['wave_type_index']?.toInt() == 1 ? 'cosine' : 'sine',
+            'num_points': 300,
           });
-          _superposition = null;
         }
-      } else if (_isCircuit) {
-        _circuit = await api.runCircuit(_buildCircuitPayload());
+      } else if (slug == 'electric-circuits') {
+        _circuit = await api.runCircuit([
+          for (final c in _components)
+            for (final w in _wireLinks.where(
+                (w) => w.fromId == c.id || w.toId == c.id))
+              {
+                'id': c.id,
+                'type': c.type,
+                'value': c.value,
+                'node_a': w.fromId,
+                'node_b': w.toId,
+              }
+        ]);
       }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
-      }
+    } catch (_) {
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      setState(() => _loading = false);
     }
   }
 
-  Future<void> _saveRun() async {
-    final runId = _projectile?.runId ?? _wave?.runId ?? _superposition?.runId ?? _circuit?.runId;
-    if (runId == null) {
-      return;
-    }
+  Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      await ref.read(apiServiceProvider).saveRun(runId);
+      final api = ref.read(apiServiceProvider);
+      await api.saveRun(widget.simulation.slug);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Experiment saved')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.bookmark_rounded,
+                    color: Color(0xFFEF9F27), size: 16),
+                SizedBox(width: 8),
+                Text('Experiment saved!',
+                    style: TextStyle(color: Colors.white)),
+              ],
+            ),
+            backgroundColor: const Color(0xFF1A1A24),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10)),
+          ),
+        );
       }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
-      }
+    } catch (_) {
     } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final sim = widget.simulation;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.simulation.name)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Text(widget.simulation.description, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 18),
-          _buildCanvas(),
-          const SizedBox(height: 18),
-          if (_isProjectile) _buildProjectileControls(),
-          if (_isWave) _buildWaveControls(),
-          if (_isCircuit) _buildCircuitControls(),
-          const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: _loading ? null : _runSimulation,
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text(_loading ? 'Running...' : _isCircuit ? 'Simulate circuit' : 'Run simulation'),
+      backgroundColor: const Color(0xFF0F0F18),
+      appBar: AppBar(
+        title: Text(sim.name,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w700)),
+        backgroundColor: const Color(0xFF0F0F18),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(
+              _saving
+                  ? Icons.hourglass_top_rounded
+                  : Icons.bookmark_border_rounded,
+              color: const Color(0xFFAAAAAA),
+            ),
+            tooltip: 'Save experiment',
+            onPressed: _saving ? null : _save,
           ),
-          const SizedBox(height: 18),
-          if (_buildResultPanel() case final panel?) panel,
-          if (_buildGraph() case final graph?) ...[
-            const SizedBox(height: 18),
-            graph,
-          ],
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Canvas
+          Expanded(
+            flex: 5,
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0D16),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                    color: Colors.white.withOpacity(0.07)),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: _buildCanvas(),
+              ),
+            ),
+          ),
+          // Controls
+          Expanded(
+            flex: 5,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF1A1A24),
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildControls(),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: _loading ? null : _run,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    const Color(0xFF378ADD),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(12)),
+                              ),
+                              child: _loading
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white))
+                                  : const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.play_arrow_rounded,
+                                            size: 18),
+                                        SizedBox(width: 8),
+                                        Text('Run Simulation',
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight:
+                                                    FontWeight.w600)),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_hasResults()) ...[
+                      const SizedBox(height: 12),
+                      _buildResults(),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+
+  bool _hasResults() =>
+      _projectile != null ||
+      _wave != null ||
+      _superposition != null ||
+      _circuit != null;
 
   Widget _buildCanvas() {
-    if (_isProjectile) {
-      return AnimationCanvas.projectile(projectilePoints: _projectile?.trajectory ?? const []);
+    final slug = widget.simulation.slug;
+    if (slug == 'projectile-motion' && _projectile != null) {
+      return AnimationCanvas.projectile(projectilePoints: _projectile!.trajectory);
     }
-    if (_isWave) {
-      final series = <AnimatedWaveSeries>[];
-      if (_wave != null) {
-        series.add(AnimatedWaveSeries(label: 'Wave 1', points: _wave!.points, color: _waveColors[0], highlight: true));
-      }
+    if (slug == 'waves-shm') {
       if (_superposition != null) {
-        for (var index = 0; index < _superposition!.waves.length; index++) {
-          final wave = _superposition!.waves[index];
-          series.add(AnimatedWaveSeries(label: wave.label, points: wave.points, color: _waveColors[index % _waveColors.length]));
-        }
-        series.add(
-          AnimatedWaveSeries(
-            label: 'Resultant',
-            points: _superposition!.combinedPoints,
-            color: const Color(0xFF8B1E3F),
-            highlight: true,
-          ),
+        final series = _superposition!.waves.map((w) {
+          return GraphSeries(
+            label: w.label,
+            spots: w.points.map((p) => FlSpot(p.x, p.y)).toList(),
+            color: _waveColors[_superposition!.waves.indexOf(w) % _waveColors.length],
+          );
+        }).toList();
+        series.add(GraphSeries(
+          label: 'Combined',
+          spots: _superposition!.combinedPoints.map((p) => FlSpot(p.x, p.y)).toList(),
+          color: Colors.purple,
+        ));
+        return GraphWidget(title: 'Wave Superposition', series: series);
+      }
+      if (_wave != null) {
+        return GraphWidget(
+          title: 'Wave',
+          series: [
+            GraphSeries(
+              label: 'Wave',
+              spots: _wave!.points.map((p) => FlSpot(p.x, p.y)).toList(),
+              color: _waveColors[0],
+            ),
+          ],
         );
       }
-      return AnimationCanvas.waves(waveSeries: series);
     }
-    return SizedBox(
-      height: 300,
-      child: Stack(
+    if (slug == 'electric-circuits' && _circuit != null) {
+      return _CircuitCanvas(
+        components: _components,
+        wireLinks: _wireLinks,
+        circuit: _circuit,
+        selectedTerminalId: _selectedTerminalId,
+        onTapComponent: (id) => setState(() => _selectedTerminalId =
+            _selectedTerminalId == id ? null : id),
+        onAddWire: (from, to) {
+          setState(() {
+            _wireLinks.add(_WireLink(fromId: from, toId: to));
+            _selectedTerminalId = null;
+          });
+        },
+      );
+    }
+    // Default placeholder
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Positioned.fill(child: AnimationCanvas.circuit(wires: _visualWires())),
-          ..._components.map(_buildComponentCard),
+          Icon(Icons.play_circle_outline_rounded,
+              color: Colors.white.withOpacity(0.15), size: 56),
+          const SizedBox(height: 12),
+          Text(
+            'Set parameters and tap Run',
+            style: TextStyle(
+                color: Colors.white.withOpacity(0.3), fontSize: 14),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildProjectileControls() {
-    return SliderPanel(
-      sections: [
-        SliderSectionData(
-          title: 'Launch Controls',
-          fields: widget.simulation.parameters
-              .map(
-                (parameter) => SliderFieldData(
-                  id: parameter.paramName,
-                  label: parameter.paramLabel,
-                  unit: parameter.unit,
-                  value: _values[parameter.paramName] ?? parameter.defaultValue,
-                  min: parameter.minValue,
-                  max: parameter.maxValue,
-                  step: parameter.stepSize,
-                ),
-              )
-              .toList(),
-        ),
-      ],
-      onChanged: (change) => setState(() => _values[change.$1] = change.$2),
+  Widget _buildControls() {
+    final slug = widget.simulation.slug;
+    if (slug == 'waves-shm') {
+      return _buildWaveControls();
+    }
+    if (slug == 'electric-circuits') {
+      return _buildCircuitControls();
+    }
+    return _buildGenericControls();
+  }
+
+  Widget _buildGenericControls() {
+    return Column(
+      children: widget.simulation.parameters.map((param) {
+        return _StyledSlider(
+          label: param.paramLabel,
+          value: _values[param.paramName] ?? param.defaultValue,
+          min: param.minValue,
+          max: param.maxValue,
+          unit: param.unit,
+          onChanged: (v) => setState(() => _values[param.paramName] = v),
+        );
+      }).toList(),
     );
   }
 
@@ -234,83 +368,68 @@ class _ConceptScreenState extends ConsumerState<ConceptScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Superposition mode'),
-                  subtitle: const Text('Blend up to three waves and compare the resultant motion.'),
-                  value: _superMode,
-                  onChanged: (value) => setState(() {
-                    _superMode = value;
-                    _waveCount = value ? math.max(_waveCount, 2) : 1;
-                  }),
-                ),
-                if (_superMode) ...[
-                  const SizedBox(height: 10),
-                  Text('Number of waves: $_waveCount'),
-                  Slider(
-                    value: _waveCount.toDouble(),
-                    min: 1,
-                    max: 3,
-                    divisions: 2,
-                    onChanged: (value) => setState(() => _waveCount = value.round()),
-                  ),
-                ],
-              ],
+        Row(
+          children: [
+            _ModeChip(
+              label: 'Single',
+              active: !_superMode,
+              onTap: () => setState(() => _superMode = false),
             ),
-          ),
+            const SizedBox(width: 8),
+            _ModeChip(
+              label: 'Superposition',
+              active: _superMode,
+              onTap: () => setState(() => _superMode = true),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
-        ...List.generate(_superMode ? _waveCount : 1, (index) {
-          final fields = widget.simulation.parameters
-              .map(
-                (parameter) => SliderFieldData(
-                  id: parameter.paramName,
-                  label: parameter.paramLabel,
-                  unit: parameter.unit,
-                  value: _waveInputs[index][parameter.paramName] ?? parameter.defaultValue,
-                  min: parameter.minValue,
-                  max: parameter.maxValue,
-                  step: parameter.stepSize,
-                  color: _waveColors[index % _waveColors.length],
-                ),
-              )
-              .toList();
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: Text('Wave ${index + 1}', style: Theme.of(context).textTheme.titleMedium)),
-                      SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'sine', label: Text('Sine')),
-                          ButtonSegment(value: 'cosine', label: Text('Cosine')),
-                        ],
-                        selected: {_waveTypes[index]},
-                        onSelectionChanged: (selection) => setState(() => _waveTypes[index] = selection.first),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SliderPanel(
-                    sections: [SliderSectionData(title: 'Wave parameters', fields: fields)],
-                    onChanged: (change) => setState(() => _waveInputs[index][change.$1] = change.$2),
-                  ),
-                ],
-              ),
+        const SizedBox(height: 10),
+        if (!_superMode) ...[
+          _StyledSlider(
+              label: 'Amplitude',
+              value: _values['amplitude'] ?? 1,
+              min: 0.1,
+              max: 5,
+              unit: '',
+              onChanged: (v) =>
+                  setState(() => _values['amplitude'] = v)),
+          _StyledSlider(
+              label: 'Frequency (Hz)',
+              value: _values['frequency'] ?? 1,
+              min: 0.1,
+              max: 5,
+              unit: ' Hz',
+              onChanged: (v) =>
+                  setState(() => _values['frequency'] = v)),
+          _StyledSlider(
+              label: 'Phase (°)',
+              value: _values['phase'] ?? 0,
+              min: 0,
+              max: 360,
+              unit: '°',
+              onChanged: (v) =>
+                  setState(() => _values['phase'] = v)),
+        ] else ...[
+          for (int i = 0; i < _waveCount; i++)
+            _WaveInputRow(
+              index: i,
+              color: _waveColors[i],
+              inputs: _waveInputs[i],
+              waveType: _waveTypes[i],
+              onChanged: (key, val) =>
+                  setState(() => _waveInputs[i][key] = val),
+              onTypeChanged: (t) =>
+                  setState(() => _waveTypes[i] = t),
             ),
-          );
-        }),
+          if (_waveCount < 3)
+            TextButton.icon(
+              onPressed: () => setState(() => _waveCount++),
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: const Text('Add wave'),
+              style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF378ADD)),
+            ),
+        ],
       ],
     );
   }
@@ -319,390 +438,545 @@ class _ConceptScreenState extends ConsumerState<ConceptScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _addBattery,
-                  icon: const Icon(Icons.battery_full_outlined),
-                  label: const Text('Add battery'),
+        const Text('Components on canvas — tap two to connect with a wire.',
+            style: TextStyle(color: Color(0xFF888899), fontSize: 12)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _components.map((c) {
+            final selected = _selectedTerminalId == c.id;
+            return GestureDetector(
+              onTap: () {
+                if (_selectedTerminalId != null &&
+                    _selectedTerminalId != c.id) {
+                  setState(() {
+                    _wireLinks.add(_WireLink(
+                        fromId: _selectedTerminalId!, toId: c.id));
+                    _selectedTerminalId = null;
+                  });
+                } else {
+                  setState(() => _selectedTerminalId =
+                      selected ? null : c.id);
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFFE24B4A).withOpacity(0.15)
+                      : const Color(0xFF12121A),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: selected
+                        ? const Color(0xFFE24B4A)
+                        : Colors.white.withOpacity(0.1),
+                  ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: _addResistor,
-                  icon: const Icon(Icons.linear_scale),
-                  label: const Text('Add resistor'),
+                child: Text(
+                  '${c.type} (${c.value.toStringAsFixed(0)})',
+                  style: TextStyle(
+                    color: selected
+                        ? const Color(0xFFE24B4A)
+                        : Colors.white70,
+                    fontSize: 12,
+                    fontWeight: selected
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: _wireLinks.isEmpty ? null : () => setState(() => _wireLinks.removeLast()),
-                  icon: const Icon(Icons.undo),
-                  label: const Text('Undo wire'),
-                ),
-                if (_selectedTerminalId != null)
-                  Text('Connecting: $_selectedTerminalId', style: Theme.of(context).textTheme.labelLarge),
-              ],
-            ),
+              ),
+            );
+          }).toList(),
+        ),
+        if (_wireLinks.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => setState(() => _wireLinks.clear()),
+            icon: const Icon(Icons.link_off_rounded, size: 15),
+            label: const Text('Clear wires'),
+            style: TextButton.styleFrom(
+                foregroundColor: Colors.white38,
+                padding: EdgeInsets.zero),
           ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Drag components to reposition them. Tap a terminal dot on one component, then tap a terminal on another component to connect with a wire.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        ],
       ],
     );
   }
 
-  Widget? _buildResultPanel() {
+  Widget _buildResults() {
     if (_projectile != null) {
-      return ResultPanel(
-        title: 'Projectile summary',
-        subtitle: 'The projectile path is sampled every 0.05 seconds until it reaches the ground.',
-        stats: [
-          ResultStat(label: 'Max height', value: '${_projectile!.maxHeight.toStringAsFixed(2)} m'),
-          ResultStat(label: 'Range', value: '${_projectile!.range.toStringAsFixed(2)} m'),
-          ResultStat(label: 'Time of flight', value: '${_projectile!.timeOfFlight.toStringAsFixed(2)} s'),
-        ],
-        cacheHit: _projectile!.cacheHit,
-        onSave: _saveRun,
-        isSaving: _saving,
-      );
+      return _ResultsPanel(rows: [
+        _ResultRow('Max Height',
+            '${_projectile!.maxHeight.toStringAsFixed(2)} m',
+            Icons.arrow_upward_rounded, const Color(0xFF1D9E75)),
+        _ResultRow('Range',
+            '${_projectile!.range.toStringAsFixed(2)} m',
+            Icons.swap_horiz_rounded, const Color(0xFF378ADD)),
+        _ResultRow('Flight Time',
+            '${_projectile!.timeOfFlight.toStringAsFixed(2)} s',
+            Icons.timer_outlined, const Color(0xFFEF9F27)),
+      ]);
     }
     if (_wave != null) {
-      return ResultPanel(
-        title: 'Wave summary',
-        subtitle: 'Single-wave motion across two periods of travel.',
-        stats: [
-          ResultStat(label: 'Period', value: '${_wave!.period.toStringAsFixed(2)} s'),
-          ResultStat(label: 'Angular frequency', value: '${_wave!.angularFrequency.toStringAsFixed(2)} rad/s'),
-        ],
-        cacheHit: _wave!.cacheHit,
-        onSave: _saveRun,
-        isSaving: _saving,
-      );
-    }
-    if (_superposition != null) {
-      final first = _superposition!.waves.first;
-      return ResultPanel(
-        title: 'Superposition summary',
-        subtitle: 'Each source wave is shown separately, with the resultant highlighted.',
-        stats: [
-          ResultStat(label: 'Active waves', value: '${_superposition!.waves.length}'),
-          ResultStat(label: 'Reference period', value: '${first.period.toStringAsFixed(2)} s'),
-          ResultStat(label: 'Reference angular frequency', value: '${first.angularFrequency.toStringAsFixed(2)} rad/s'),
-        ],
-        cacheHit: _superposition!.cacheHit,
-        onSave: _saveRun,
-        isSaving: _saving,
-      );
+      return _ResultsPanel(rows: [
+        _ResultRow('Period',
+            '${_wave!.period.toStringAsFixed(3)} s',
+            Icons.repeat_rounded, const Color(0xFF378ADD)),
+        _ResultRow('ω',
+            '${_wave!.angularFrequency.toStringAsFixed(2)} r/s',
+            Icons.rotate_right_rounded, Colors.tealAccent),
+      ]);
     }
     if (_circuit != null) {
-      return ResultPanel(
-        title: 'Circuit summary',
-        subtitle: 'Node voltages and branch currents come from nodal analysis on the current workbench.',
-        stats: [
-          ResultStat(label: 'Total resistance', value: _circuit!.totalResistance == null ? 'N/A' : '${_circuit!.totalResistance!.toStringAsFixed(2)} ohm'),
-          ResultStat(label: 'Total power', value: '${_circuit!.totalPower.toStringAsFixed(2)} W'),
-          ResultStat(label: 'Solved nodes', value: '${_circuit!.nodeVoltages.length}'),
-        ],
-        cacheHit: _circuit!.cacheHit,
-        onSave: _saveRun,
-        isSaving: _saving,
-      );
+      return _ResultsPanel(rows: [
+        _ResultRow('Total Resistance',
+            '${_circuit!.totalResistance?.toStringAsFixed(2) ?? 'N/A'} Ω',
+            Icons.memory_rounded, const Color(0xFFEF9F27)),
+        _ResultRow('Total Power',
+            '${_circuit!.totalPower.toStringAsFixed(2)} W',
+            Icons.bolt_rounded, const Color(0xFF1D9E75)),
+      ]);
     }
-    return null;
-  }
-
-  Widget? _buildGraph() {
-    if (_projectile != null) {
-      return GraphWidget(
-        title: 'Trajectory graph',
-        series: [
-          GraphSeries(
-            label: 'Projectile arc',
-            spots: _projectile!.trajectory.map((point) => FlSpot(point.x, point.y)).toList(),
-            color: const Color(0xFF0F766E),
-          ),
-        ],
-      );
-    }
-    if (_wave != null) {
-      return GraphWidget(
-        title: 'Wave graph',
-        series: [
-          GraphSeries(
-            label: 'Wave 1',
-            spots: _wave!.points.map((point) => FlSpot(point.x, point.y)).toList(),
-            color: _waveColors[0],
-          ),
-        ],
-      );
-    }
-    if (_superposition != null) {
-      return GraphWidget(
-        title: 'Wave superposition graph',
-        series: [
-          for (var index = 0; index < _superposition!.waves.length; index++)
-            GraphSeries(
-              label: _superposition!.waves[index].label,
-              spots: _superposition!.waves[index].points.map((point) => FlSpot(point.x, point.y)).toList(),
-              color: _waveColors[index % _waveColors.length],
-            ),
-          GraphSeries(
-            label: 'Resultant',
-            spots: _superposition!.combinedPoints.map((point) => FlSpot(point.x, point.y)).toList(),
-            color: const Color(0xFF8B1E3F),
-            width: 4,
-          ),
-        ],
-      );
-    }
-    if (_circuit != null) {
-      return GraphWidget(
-        title: 'Branch current graph',
-        series: [
-          GraphSeries(
-            label: 'Branch current',
-            spots: [
-              for (var index = 0; index < _circuit!.branchCurrents.length; index++)
-                FlSpot(index.toDouble(), _circuit!.branchCurrents[index].current)
-            ],
-            color: const Color(0xFF2563EB),
-            curved: false,
-          ),
-        ],
-      );
-    }
-    return null;
-  }
-
-  Widget _buildComponentCard(_CircuitComponentModel component) {
-    final current = _circuit?.branchCurrents.where((item) => item.componentId == component.id).firstOrNull?.current;
-    final voltageDrop = current == null
-        ? (component.type == 'battery' ? component.value : null)
-        : component.type == 'battery'
-            ? component.value
-            : current.abs() * component.value;
-    return Positioned(
-      left: component.position.dx,
-      top: component.position.dy,
-      child: GestureDetector(
-        onPanUpdate: (details) => setState(() {
-          final updated = component.position + details.delta;
-          _replaceComponent(component.copyWith(position: Offset(updated.dx.clamp(0, 420), updated.dy.clamp(0, 200))));
-        }),
-        child: SizedBox(
-          width: component.size.width,
-          height: component.size.height,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Card(
-                color: component.type == 'battery' ? const Color(0xFFFFF6D6) : const Color(0xFFE7F1FF),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(child: Text(component.label, style: Theme.of(context).textTheme.titleMedium)),
-                          IconButton(
-                            onPressed: () => setState(() {
-                              _components.removeWhere((item) => item.id == component.id);
-                              _wireLinks.removeWhere((wire) => wire.startTerminal.startsWith(component.id) || wire.endTerminal.startsWith(component.id));
-                            }),
-                            icon: const Icon(Icons.close, size: 18),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(component.type == 'battery' ? '${component.value.toStringAsFixed(1)} V source' : '${component.value.toStringAsFixed(1)} ohm resistor'),
-                      if (current != null) ...[
-                        const SizedBox(height: 6),
-                        Text('I = ${current.toStringAsFixed(2)} A'),
-                      ],
-                      if (voltageDrop != null) Text('V = ${voltageDrop.toStringAsFixed(2)} V'),
-                    ],
-                  ),
-                ),
-              ),
-              _buildTerminal(component, true),
-              _buildTerminal(component, false),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTerminal(_CircuitComponentModel component, bool isA) {
-    final terminalId = isA ? component.terminalA : component.terminalB;
-    final selected = terminalId == _selectedTerminalId;
-    return Positioned(
-      left: isA ? -10 : component.size.width - 10,
-      top: component.size.height / 2 - 10,
-      child: GestureDetector(
-        onTap: () => _handleTerminalTap(terminalId),
-        child: Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: selected ? const Color(0xFF8B1E3F) : const Color(0xFF0F766E),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _handleTerminalTap(String terminalId) {
-    setState(() {
-      if (_selectedTerminalId == null) {
-        _selectedTerminalId = terminalId;
-        return;
-      }
-      if (_selectedTerminalId == terminalId) {
-        _selectedTerminalId = null;
-        return;
-      }
-      final duplicate = _wireLinks.any(
-        (wire) => (wire.startTerminal == _selectedTerminalId && wire.endTerminal == terminalId) || (wire.startTerminal == terminalId && wire.endTerminal == _selectedTerminalId),
-      );
-      if (!duplicate) {
-        _wireLinks.add(_WireLink(id: 'wire-${_wireLinks.length + 1}', startTerminal: _selectedTerminalId!, endTerminal: terminalId));
-      }
-      _selectedTerminalId = null;
-    });
-  }
-
-  void _addBattery() {
-    final count = _components.where((item) => item.type == 'battery').length + 1;
-    setState(() {
-      _components.add(
-        _CircuitComponentModel(
-          id: 'battery-$count',
-          type: 'battery',
-          label: 'Battery $count',
-          value: 9 + count.toDouble(),
-          position: Offset(40 + count * 20, 30 + count * 12),
-        ),
-      );
-    });
-  }
-
-  void _addResistor() {
-    final count = _components.where((item) => item.type == 'resistor').length + 1;
-    setState(() {
-      _components.add(
-        _CircuitComponentModel(
-          id: 'resistor-$count',
-          type: 'resistor',
-          label: 'Resistor $count',
-          value: 4 + count.toDouble() * 2,
-          position: Offset(240 + count * 18, 40 + count * 20),
-        ),
-      );
-    });
-  }
-
-  void _replaceComponent(_CircuitComponentModel updated) {
-    final index = _components.indexWhere((item) => item.id == updated.id);
-    if (index >= 0) {
-      _components[index] = updated;
-    }
-  }
-
-  List<Map<String, dynamic>> _buildCircuitPayload() {
-    return [
-      ..._components.map(
-        (component) => {
-          'id': component.id,
-          'type': component.type,
-          'value': component.value,
-          'node_a': component.terminalA,
-          'node_b': component.terminalB,
-        },
-      ),
-      ..._wireLinks.map(
-        (wire) => {
-          'id': wire.id,
-          'type': 'wire',
-          'value': 0,
-          'node_a': wire.startTerminal,
-          'node_b': wire.endTerminal,
-        },
-      ),
-    ];
-  }
-
-  List<CircuitVisualWire> _visualWires() {
-    final currentById = {
-      for (final current in _circuit?.branchCurrents ?? const <BranchCurrent>[]) current.componentId: current.current,
-    };
-    return _wireLinks
-        .map((wire) {
-          final startComponent = _components.firstWhere((component) => wire.startTerminal.startsWith(component.id));
-          final endComponent = _components.firstWhere((component) => wire.endTerminal.startsWith(component.id));
-          final start = wire.startTerminal.endsWith('_a') ? startComponent.leftTerminal : startComponent.rightTerminal;
-          final end = wire.endTerminal.endsWith('_a') ? endComponent.leftTerminal : endComponent.rightTerminal;
-          final speed = math.max(
-            currentById[startComponent.id]?.abs() ?? 0,
-            currentById[endComponent.id]?.abs() ?? 0,
-          );
-          return CircuitVisualWire(id: wire.id, start: start, end: end, speed: speed);
-        })
-        .toList();
+    return const SizedBox.shrink();
   }
 }
 
+// ── Styled slider ─────────────────────────────────────────
+class _StyledSlider extends StatelessWidget {
+  const _StyledSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.unit,
+    required this.onChanged,
+  });
+  final String label;
+  final double value, min, max;
+  final String unit;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label,
+                style: const TextStyle(
+                    color: Color(0xFFAAAAAA), fontSize: 12)),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF378ADD).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '${value.toStringAsFixed(1)}$unit',
+                style: const TextStyle(
+                  color: Color(0xFF378ADD),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: const Color(0xFF378ADD),
+            inactiveTrackColor: Colors.white.withOpacity(0.08),
+            thumbColor: const Color(0xFF378ADD),
+            overlayColor: const Color(0xFF378ADD).withOpacity(0.12),
+            trackHeight: 3,
+            thumbShape:
+                const RoundSliderThumbShape(enabledThumbRadius: 7),
+          ),
+          child: Slider(value: value, min: min, max: max, onChanged: onChanged),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Mode chip ─────────────────────────────────────────────
+class _ModeChip extends StatelessWidget {
+  const _ModeChip(
+      {required this.label, required this.active, required this.onTap});
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: active
+              ? const Color(0xFF378ADD).withOpacity(0.15)
+              : const Color(0xFF12121A),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active
+                ? const Color(0xFF378ADD)
+                : Colors.white.withOpacity(0.1),
+          ),
+        ),
+        child: Text(label,
+            style: TextStyle(
+              color: active
+                  ? const Color(0xFF378ADD)
+                  : const Color(0xFFAAAAAA),
+              fontSize: 12,
+              fontWeight:
+                  active ? FontWeight.w600 : FontWeight.w400,
+            )),
+      ),
+    );
+  }
+}
+
+// ── Wave input row ────────────────────────────────────────
+class _WaveInputRow extends StatelessWidget {
+  const _WaveInputRow({
+    required this.index,
+    required this.color,
+    required this.inputs,
+    required this.waveType,
+    required this.onChanged,
+    required this.onTypeChanged,
+  });
+  final int index;
+  final Color color;
+  final Map<String, double> inputs;
+  final String waveType;
+  final void Function(String, double) onChanged;
+  final void Function(String) onTypeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border(left: BorderSide(color: color, width: 3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text('Wave ${index + 1}',
+                  style: TextStyle(
+                      color: color,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600)),
+              const Spacer(),
+              _TypeToggle(
+                  active: waveType == 'sine',
+                  label: 'Sine',
+                  onTap: () => onTypeChanged('sine')),
+              const SizedBox(width: 6),
+              _TypeToggle(
+                  active: waveType == 'cosine',
+                  label: 'Cosine',
+                  onTap: () => onTypeChanged('cosine')),
+            ],
+          ),
+          _MiniSlider(
+              label: 'A',
+              value: inputs['amplitude'] ?? 1,
+              min: 0.1,
+              max: 5,
+              onChanged: (v) => onChanged('amplitude', v),
+              color: color),
+          _MiniSlider(
+              label: 'f',
+              value: inputs['frequency'] ?? 1,
+              min: 0.1,
+              max: 5,
+              onChanged: (v) => onChanged('frequency', v),
+              color: color),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypeToggle extends StatelessWidget {
+  const _TypeToggle(
+      {required this.active, required this.label, required this.onTap});
+  final bool active;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: active
+              ? Colors.white.withOpacity(0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                color: active ? Colors.white : Colors.white38,
+                fontSize: 10)),
+      ),
+    );
+  }
+}
+
+class _MiniSlider extends StatelessWidget {
+  const _MiniSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    required this.color,
+  });
+  final String label;
+  final double value, min, max;
+  final ValueChanged<double> onChanged;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 16,
+          child: Text(label,
+              style: TextStyle(color: color, fontSize: 11)),
+        ),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: color,
+              inactiveTrackColor: color.withOpacity(0.15),
+              thumbColor: color,
+              overlayColor: color.withOpacity(0.1),
+              trackHeight: 2,
+              thumbShape:
+                  const RoundSliderThumbShape(enabledThumbRadius: 6),
+            ),
+            child: Slider(
+                value: value, min: min, max: max, onChanged: onChanged),
+          ),
+        ),
+        SizedBox(
+          width: 32,
+          child: Text(value.toStringAsFixed(1),
+              textAlign: TextAlign.right,
+              style: TextStyle(color: color, fontSize: 10)),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Results panel ─────────────────────────────────────────
+class _ResultsPanel extends StatelessWidget {
+  const _ResultsPanel({required this.rows});
+  final List<_ResultRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF12121A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Row(
+        children: rows
+            .map(
+              (r) => Expanded(
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(r.icon, size: 13, color: r.color),
+                        const SizedBox(width: 4),
+                        Text(r.label,
+                            style: const TextStyle(
+                                color: Color(0xFF777777),
+                                fontSize: 10)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(r.value,
+                        style: TextStyle(
+                            color: r.color,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _ResultRow {
+  const _ResultRow(this.label, this.value, this.icon, this.color);
+  final String label, value;
+  final IconData icon;
+  final Color color;
+}
+
+// ── Circuit canvas placeholder ────────────────────────────
+class _CircuitCanvas extends StatelessWidget {
+  const _CircuitCanvas({
+    required this.components,
+    required this.wireLinks,
+    required this.circuit,
+    required this.selectedTerminalId,
+    required this.onTapComponent,
+    required this.onAddWire,
+  });
+  final List<_CircuitComponentModel> components;
+  final List<_WireLink> wireLinks;
+  final CircuitResult? circuit;
+  final String? selectedTerminalId;
+  final void Function(String) onTapComponent;
+  final void Function(String, String) onAddWire;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size.infinite,
+      painter: _CircuitCanvasPainter(
+        components: components,
+        wireLinks: wireLinks,
+        circuit: circuit,
+        selectedId: selectedTerminalId,
+      ),
+    );
+  }
+}
+
+class _CircuitCanvasPainter extends CustomPainter {
+  final List<_CircuitComponentModel> components;
+  final List<_WireLink> wireLinks;
+  final CircuitResult? circuit;
+  final String? selectedId;
+
+  _CircuitCanvasPainter({
+    required this.components,
+    required this.wireLinks,
+    required this.circuit,
+    required this.selectedId,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Draw wires
+    for (final wire in wireLinks) {
+      final from =
+          components.firstWhere((c) => c.id == wire.fromId,
+              orElse: () => components.first);
+      final to =
+          components.firstWhere((c) => c.id == wire.toId,
+              orElse: () => components.last);
+      canvas.drawLine(
+        Offset(from.x, from.y),
+        Offset(to.x, to.y),
+        Paint()
+          ..color = const Color(0xFF378ADD).withOpacity(0.6)
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
+    // Draw components
+    for (final comp in components) {
+      final isSelected = selectedId == comp.id;
+      final color = comp.type == 'battery'
+          ? Colors.greenAccent
+          : Colors.amber;
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset(comp.x, comp.y),
+              width: 64,
+              height: 32),
+          const Radius.circular(8),
+        ),
+        Paint()
+          ..color = isSelected
+              ? color.withOpacity(0.25)
+              : const Color(0xFF1A1A24),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset(comp.x, comp.y),
+              width: 64,
+              height: 32),
+          const Radius.circular(8),
+        ),
+        Paint()
+          ..color = isSelected ? color : color.withOpacity(0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = isSelected ? 2 : 1.2,
+      );
+
+      final tp = TextPainter(
+          text: TextSpan(
+              text: '${comp.type}\n${comp.value.toStringAsFixed(0)}',
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 9,
+                  height: 1.4)),
+          textDirection: TextDirection.ltr,
+          textAlign: TextAlign.center)
+        ..layout(maxWidth: 60);
+      tp.paint(canvas,
+          Offset(comp.x - tp.width / 2, comp.y - tp.height / 2));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CircuitCanvasPainter old) => true;
+}
+
+// ── Data models ───────────────────────────────────────────
 class _CircuitComponentModel {
+  final String id, type;
+  final double value, x, y;
   const _CircuitComponentModel({
     required this.id,
     required this.type,
-    required this.label,
     required this.value,
-    required this.position,
-    this.size = const Size(150, 110),
+    required this.x,
+    required this.y,
   });
-
-  final String id;
-  final String type;
-  final String label;
-  final double value;
-  final Offset position;
-  final Size size;
-
-  String get terminalA => '${id}_a';
-  String get terminalB => '${id}_b';
-  Offset get leftTerminal => Offset(position.dx, position.dy + size.height / 2);
-  Offset get rightTerminal => Offset(position.dx + size.width, position.dy + size.height / 2);
-
-  _CircuitComponentModel copyWith({Offset? position}) => _CircuitComponentModel(
-        id: id,
-        type: type,
-        label: label,
-        value: value,
-        position: position ?? this.position,
-        size: size,
-      );
 }
 
 class _WireLink {
-  const _WireLink({required this.id, required this.startTerminal, required this.endTerminal});
-
-  final String id;
-  final String startTerminal;
-  final String endTerminal;
+  final String fromId, toId;
+  const _WireLink({required this.fromId, required this.toId});
 }
-
-extension _IterableFirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
-}
-
-
