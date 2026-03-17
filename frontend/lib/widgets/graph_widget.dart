@@ -25,7 +25,7 @@ class GraphWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (series.isEmpty || series.every((item) => item.spots.isEmpty)) {
+    if (series.isEmpty || series.every((s) => s.spots.isEmpty)) {
       return const SizedBox.shrink();
     }
     return Card(
@@ -44,21 +44,30 @@ class GraphWidget extends StatelessWidget {
                   maxX: _maxX(series),
                   minY: _minY(series),
                   maxY: _maxY(series),
-                  gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: _interval(series)),
+                  gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      horizontalInterval: _interval(series)),
                   borderData: FlBorderData(show: false),
                   titlesData: FlTitlesData(
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 42)),
-                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28)),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: AxisTitles(
+                        sideTitles:
+                            SideTitles(showTitles: true, reservedSize: 42)),
+                    bottomTitles: AxisTitles(
+                        sideTitles:
+                            SideTitles(showTitles: true, reservedSize: 28)),
                   ),
                   lineBarsData: series
                       .map(
-                        (item) => LineChartBarData(
-                          spots: item.spots,
-                          isCurved: item.curved,
-                          barWidth: item.width,
-                          color: item.color,
+                        (s) => LineChartBarData(
+                          spots: s.spots,
+                          isCurved: s.curved,
+                          barWidth: s.width,
+                          color: s.color,
                           dotData: const FlDotData(show: false),
                         ),
                       )
@@ -72,16 +81,18 @@ class GraphWidget extends StatelessWidget {
               runSpacing: 8,
               children: series
                   .map(
-                    (item) => Row(
+                    (s) => Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
                           width: 12,
                           height: 12,
-                          decoration: BoxDecoration(color: item.color, borderRadius: BorderRadius.circular(999)),
+                          decoration: BoxDecoration(
+                              color: s.color,
+                              borderRadius: BorderRadius.circular(999)),
                         ),
                         const SizedBox(width: 8),
-                        Text(item.label),
+                        Text(s.label),
                       ],
                     ),
                   )
@@ -93,29 +104,22 @@ class GraphWidget extends StatelessWidget {
     );
   }
 
-  double _minX(List<GraphSeries> series) =>
-      series.expand((item) => item.spots).map((spot) => spot.x).reduce((a, b) => a < b ? a : b);
-
-  double _maxX(List<GraphSeries> series) =>
-      series.expand((item) => item.spots).map((spot) => spot.x).reduce((a, b) => a > b ? a : b);
-
-  double _minY(List<GraphSeries> series) {
-    final value = series.expand((item) => item.spots).map((spot) => spot.y).reduce((a, b) => a < b ? a : b);
-    return value == 0 ? -1 : value * 1.15;
+  double _minX(List<GraphSeries> s) =>
+      s.expand((i) => i.spots).map((sp) => sp.x).reduce((a, b) => a < b ? a : b);
+  double _maxX(List<GraphSeries> s) =>
+      s.expand((i) => i.spots).map((sp) => sp.x).reduce((a, b) => a > b ? a : b);
+  double _minY(List<GraphSeries> s) {
+    final v =
+        s.expand((i) => i.spots).map((sp) => sp.y).reduce((a, b) => a < b ? a : b);
+    return v == 0 ? -1 : v * 1.15;
   }
-
-  double _maxY(List<GraphSeries> series) {
-    final value = series.expand((item) => item.spots).map((spot) => spot.y).reduce((a, b) => a > b ? a : b);
-    return value == 0 ? 1 : value * 1.15;
+  double _maxY(List<GraphSeries> s) {
+    final v =
+        s.expand((i) => i.spots).map((sp) => sp.y).reduce((a, b) => a > b ? a : b);
+    return v == 0 ? 1 : v * 1.15;
   }
-
-  double? _interval(List<GraphSeries> series) {
-    final min = _minY(series);
-    final max = _maxY(series);
-    final span = (max - min).abs();
-    if (span == 0) {
-      return 1;
-    }
-    return span / 4;
+  double? _interval(List<GraphSeries> s) {
+    final span = (_maxY(s) - _minY(s)).abs();
+    return span == 0 ? 1 : span / 4;
   }
 }
