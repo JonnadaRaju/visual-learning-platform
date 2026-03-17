@@ -118,6 +118,10 @@ class TopicListScreen extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF1A1A24),
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: subject.accent.withOpacity(0.15),
+                                  width: 1,
+                                ),
                               ),
                               padding: const EdgeInsets.all(10),
                               child: Column(
@@ -146,6 +150,7 @@ class TopicListScreen extends StatelessWidget {
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Colors.white,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],

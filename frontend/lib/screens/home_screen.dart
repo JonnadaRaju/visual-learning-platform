@@ -83,9 +83,9 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 GridView.count(
                   crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.4,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1.8,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   children: subjectCatalog.map((subject) {
