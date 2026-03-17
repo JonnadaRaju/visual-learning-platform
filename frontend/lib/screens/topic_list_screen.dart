@@ -89,9 +89,9 @@ class TopicListScreen extends StatelessWidget {
                       const SizedBox(height: 14),
                       GridView.count(
                         crossAxisCount: 4,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 0.85,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 1.0,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         children: entry.value.map((topic) {
