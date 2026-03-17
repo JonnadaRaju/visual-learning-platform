@@ -116,10 +116,17 @@ class TopicListScreen extends StatelessWidget {
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1A1A24),
                                 borderRadius: BorderRadius.circular(12),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    subject.accent.withOpacity(0.15),
+                                    const Color(0xFF1A1A24),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
                                 border: Border.all(
-                                  color: subject.accent.withOpacity(0.15),
+                                  color: subject.accent.withOpacity(0.25),
                                   width: 1,
                                 ),
                               ),
@@ -132,7 +139,7 @@ class TopicListScreen extends StatelessWidget {
                                     width: 40,
                                     height: 40,
                                     decoration: BoxDecoration(
-                                      color: subject.accent.withOpacity(0.18),
+                                      color: subject.accent.withOpacity(0.22),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Icon(
@@ -150,7 +157,7 @@ class TopicListScreen extends StatelessWidget {
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Colors.white,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
