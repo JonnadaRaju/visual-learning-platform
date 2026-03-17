@@ -157,4 +157,28 @@ const topicCatalog = <TopicCatalogItem>[
     emoji: '⚡',
     classRange: [9, 10, 11, 12],
   ),
+  TopicCatalogItem(
+    subjectId: 'physics',
+    simulationSlug: 'gravitation-orbits',
+    name: 'Gravitation & Orbits',
+    category: 'Mechanics',
+    emoji: '🪐',
+    classRange: [9, 10, 11, 12],
+  ),
+  TopicCatalogItem(
+    subjectId: 'physics',
+    simulationSlug: 'newtons-laws',
+    name: "Newton's Laws",
+    category: 'Mechanics',
+    emoji: '⚖️',
+    classRange: [9, 10, 11, 12],
+  ),
+  TopicCatalogItem(
+    subjectId: 'physics',
+    simulationSlug: 'fluid-pressure',
+    name: 'Fluid Pressure',
+    category: 'Fluids',
+    emoji: '💧',
+    classRange: [9, 10, 11, 12],
+  ),
 ];
