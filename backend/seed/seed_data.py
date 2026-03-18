@@ -7,7 +7,6 @@ if str(ROOT_DIR) not in sys.path:
 
 from backend.database import initialize_database, replace_simulation_parameters, upsert_simulation
 
-
 def seed() -> None:
     initialize_database()
 

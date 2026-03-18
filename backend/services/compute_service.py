@@ -10,10 +10,10 @@ import numpy as np
 from fastapi import HTTPException, status
 from pydantic import BaseModel
 
-from backend.cache import cache_get, cache_set
-from backend.database import fetch_simulation_by_slug, fetch_runs, fetch_run_stats, insert_run, mark_run_saved
-from backend.schemas.compute import CircuitRequest, ProjectileRequest, WaveRequest, WaveSuperpositionRequest
-from backend.schemas.response import (
+from cache import cache_get, cache_set
+from database import fetch_simulation_by_slug, fetch_runs, fetch_run_stats, insert_run, mark_run_saved
+from schemas.compute import CircuitRequest, ProjectileRequest, WaveRequest, WaveSuperpositionRequest
+from schemas.response import (
     BranchCurrent,
     CircuitResponse,
     NodeVoltage,
