@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 import psycopg2
 from psycopg2.extras import Json, RealDictCursor
 
-from backend.config import get_settings
+from config import get_settings
 
 settings = get_settings()
 

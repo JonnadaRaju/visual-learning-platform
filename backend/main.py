@@ -22,20 +22,20 @@ app.add_middleware(
 )
 
 try:
-    from backend.routes.concepts import router as simulations_router
+    from routes.concepts import router as simulations_router
     app.include_router(simulations_router)
 except Exception as e:
     print(f'Could not load concepts router: {e}')
 
 try:
-    from backend.routes.compute import router as compute_router
+    from routes.compute import router as compute_router
     app.include_router(compute_router)
 except Exception as e:
     print(f'Could not load compute router: {e}')
 
 try:
-    from backend.database import initialize_database, verify_database_connection
-    from backend.cache import verify_cache_connection
+    from database import initialize_database, verify_database_connection
+    from cache import verify_cache_connection
     initialize_database()
     verify_cache_connection()
 except Exception as e:
@@ -43,12 +43,7 @@ except Exception as e:
 
 @app.get('/health')
 def health():
-    try:
-        initialize_database()
-        verify_database_connection()
-    except Exception as e:
-        return {'status': 'error', 'detail': str(e)}
-    return {'status': 'ok', 'app': settings.app_name}
+    return {'status': 'ok'}
 
 @app.get('/')
 def root():

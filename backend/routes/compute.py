@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 
-from backend.services.compute_service import (
+from services.compute_service import (
     compute_circuit,
     compute_projectile,
     compute_wave,
@@ -13,8 +13,8 @@ from backend.services.compute_service import (
     parse_uuid,
     save_run,
 )
-from backend.schemas.compute import CircuitRequest, ProjectileRequest, SaveRunRequest, WaveRequest, WaveSuperpositionRequest
-from backend.schemas.response import CircuitResponse, ProjectileResponse, RunListResponse, RunStatsResponse, RunSummary, SaveRunResponse, WaveResponse, WaveSuperpositionResponse
+from schemas.compute import CircuitRequest, ProjectileRequest, SaveRunRequest, WaveRequest, WaveSuperpositionRequest
+from schemas.response import CircuitResponse, ProjectileResponse, RunListResponse, RunStatsResponse, RunSummary, SaveRunResponse, WaveResponse, WaveSuperpositionResponse
 
 router = APIRouter(tags=['compute'])
 
