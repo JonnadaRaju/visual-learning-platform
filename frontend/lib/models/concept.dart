@@ -157,4 +157,38 @@ const topicCatalog = <TopicCatalogItem>[
     emoji: '💧',
     classRange: [9, 10, 11, 12],
   ),
+  // Maths
+  TopicCatalogItem(
+    subjectId: 'maths',
+    simulationSlug: 'linear-equations',
+    name: 'Linear Equations',
+    category: 'Algebra',
+    emoji: '📈',
+    classRange: [6, 7, 8, 9, 10],
+  ),
+  TopicCatalogItem(
+    subjectId: 'maths',
+    simulationSlug: 'geometry',
+    name: 'Geometry',
+    category: 'Geometry',
+    emoji: '📐',
+    classRange: [6, 7, 8, 9, 10],
+  ),
+  // Chemistry
+  TopicCatalogItem(
+    subjectId: 'chemistry',
+    simulationSlug: 'atomic-structure',
+    name: 'Atomic Structure',
+    category: 'Atomic Structure',
+    emoji: '⚛️',
+    classRange: [9, 10, 11, 12],
+  ),
+  TopicCatalogItem(
+    subjectId: 'chemistry',
+    simulationSlug: 'acids-bases',
+    name: 'Acids & Bases',
+    category: 'Acids & Bases',
+    emoji: '🧪',
+    classRange: [9, 10, 11, 12],
+  ),
 ];
