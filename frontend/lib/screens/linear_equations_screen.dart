@@ -2,8 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/api_service.dart';
+import '../widgets/ai_explanation_dialog.dart';
 
 /// Maths: Linear Equations — y = mx + c interactive visualizer
 class LinearEquationsScreen extends ConsumerStatefulWidget {
@@ -52,37 +51,12 @@ class _LinearEquationsScreenState extends ConsumerState<LinearEquationsScreen>
 
   Future<void> _showAiExplanation(BuildContext context, String topic) async {
     final api = ref.read(apiServiceProvider);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
+    showLoading(context);
     try {
       final explanation = await api.explainTopic(topic);
       if (!mounted) return;
       Navigator.pop(context);
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A2E),
-          title: const Row(
-            children: [
-              Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
-              SizedBox(width: 8),
-              Text('AI Explanation', style: TextStyle(color: Colors.white)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Text(explanation, style: const TextStyle(color: Colors.white70)),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Got it!'),
-            ),
-          ],
-        ),
-      );
+      showAiExplanation(context, topic, explanation);
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);

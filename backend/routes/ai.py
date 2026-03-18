@@ -79,10 +79,16 @@ async def explain_topic(request: QuestionRequest):
         response = client.chat.completions(
             model="sarvam-m",
             messages=[
-                {"role": "system", "content": "You are a friendly science and math tutor for middle and high school students. Explain concepts in simple, easy-to-understand language."},
-                {"role": "user", "content": f"Give a brief explanation of {topic_info}. Include what it is, why it's important, and a simple example."}
+                {"role": "system", "content": """You are a friendly science and math tutor for students in grades 6-12.
+Your explanations should be:
+- Clear and easy to understand
+- Use simple language
+- Include real-life examples
+- Well formatted with bullet points where appropriate
+- Cover: What is the topic, Why it matters, Key formulas/concepts, A simple example"""},
+                {"role": "user", "content": f"Explain the topic: {topic_info}. Provide a comprehensive but clear explanation suitable for school students."}
             ],
-            max_tokens=500,
+            max_tokens=800,
             temperature=0.7
         )
         

@@ -11,6 +11,7 @@ import '../widgets/animation_canvas.dart';
 import '../widgets/graph_widget.dart';
 import '../widgets/result_panel.dart';
 import '../widgets/slider_panel.dart';
+import '../widgets/ai_explanation_dialog.dart';
 
 class ConceptScreen extends ConsumerStatefulWidget {
   const ConceptScreen({super.key, required this.simulation});
@@ -149,35 +150,15 @@ class _ConceptScreenState extends ConsumerState<ConceptScreen> {
 
   Future<void> _explainTopic() async {
     final api = ref.read(apiServiceProvider);
+    showLoading(context);
     try {
       final explanation = await api.explainTopic(widget.simulation.slug);
       if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A2E),
-          title: Row(
-            children: [
-              const Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
-              const SizedBox(width: 8),
-              Text(widget.simulation.name,
-                  style: const TextStyle(color: Colors.white)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Text(explanation,
-                style: const TextStyle(color: Colors.white70)),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Got it!'),
-            ),
-          ],
-        ),
-      );
+      Navigator.pop(context);
+      showAiExplanation(context, widget.simulation.slug, explanation);
     } catch (e) {
       if (!mounted) return;
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to get explanation: $e')),
       );
