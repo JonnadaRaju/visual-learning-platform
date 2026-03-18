@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Literal
+from typing import List, Literal, Optional
 import uuid
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -17,10 +15,10 @@ class WaveRequest(BaseModel):
     wave_type: Literal['sine', 'cosine']
 
 class WaveDefinitionInput(WaveRequest):
-    label: str | None = None
+    label: Optional[str] = None
 
 class WaveSuperpositionRequest(BaseModel):
-    waves: list[WaveDefinitionInput]
+    waves: List[WaveDefinitionInput]
     @field_validator('waves')
     @classmethod
     def validate_waves(cls, value):
@@ -43,7 +41,7 @@ class CircuitComponentInput(BaseModel):
         return self
 
 class CircuitRequest(BaseModel):
-    components: list[CircuitComponentInput]
+    components: List[CircuitComponentInput]
     @field_validator('components')
     @classmethod
     def validate_components(cls, value):

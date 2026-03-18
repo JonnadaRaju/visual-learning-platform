@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import hashlib
 import json
 import math
 from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List, Optional
 import uuid
 
 import numpy as np
@@ -37,7 +35,7 @@ def parse_uuid(value: str, field_name: str = 'value') -> uuid.UUID:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f'{field_name} must be a valid UUID') from exc
 
 
-def _build_cache_key(prefix: str, payload: dict) -> str:
+def _build_cache_key(prefix: str, payload: Dict) -> str:
     normalized = json.dumps(payload, sort_keys=True, separators=(',', ':'))
     return f'{prefix}:{hashlib.sha256(normalized.encode()).hexdigest()}'
 
@@ -66,7 +64,7 @@ def compute_projectile(session_id: str, payload: ProjectileRequest) -> Projectil
     tof = (vy + math.sqrt(discriminant)) / payload.gravity if payload.gravity else 0.0
     max_height = payload.initial_height + (vy * vy) / (2 * payload.gravity) if payload.gravity else payload.initial_height
 
-    points: list[Point3D] = []
+    points: List[Point3D] = []
     t = 0.0
     while True:
         x = vx * t
@@ -150,7 +148,7 @@ def compute_wave_superposition(session_id: str, payload: WaveSuperpositionReques
 
 class _UnionFind:
     def __init__(self):
-        self.parent: dict[str, str] = {}
+        self.parent: Dict[str, str] = {}
 
     def find(self, item: str) -> str:
         self.parent.setdefault(item, item)
@@ -182,7 +180,7 @@ def compute_circuit(session_id: str, payload: CircuitRequest) -> CircuitResponse
         if component.type == 'wire':
             union_find.union(component.node_a, component.node_b)
 
-    reduced: list[dict[str, Any]] = []
+    reduced: List[Dict[str, Any]] = []
     node_labels = set()
     for component in payload.components:
         node_a = union_find.find(component.node_a)

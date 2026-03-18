@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import List
 
 import uuid
 from pydantic import BaseModel
@@ -19,10 +19,10 @@ class SimulationListItem(BaseModel):
     name: str
     slug: str
     description: str
-    parameters: list[SimulationParameterResponse]
+    parameters: List[SimulationParameterResponse]
 
 class SimulationListResponse(BaseModel):
-    simulations: list[SimulationListItem]
+    simulations: List[SimulationListItem]
 
 class SimulationDetailResponse(SimulationListItem):
     pass

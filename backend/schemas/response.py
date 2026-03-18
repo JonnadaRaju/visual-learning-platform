@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import List, Optional
 
 from datetime import datetime
 import uuid
@@ -7,11 +7,11 @@ from pydantic import BaseModel
 class Point3D(BaseModel):
     x: float
     y: float
-    t: float | None = None
+    t: Optional[float] = None
 
 class ProjectileResponse(BaseModel):
     run_id: uuid.UUID
-    trajectory: list[Point3D]
+    trajectory: List[Point3D]
     max_height: float
     range: float
     time_of_flight: float
@@ -19,7 +19,7 @@ class ProjectileResponse(BaseModel):
 
 class WaveResponse(BaseModel):
     run_id: uuid.UUID
-    points: list[Point3D]
+    points: List[Point3D]
     period: float
     angular_frequency: float
     cache_hit: bool
@@ -27,14 +27,14 @@ class WaveResponse(BaseModel):
 class WaveSeries(BaseModel):
     label: str
     wave_type: str
-    points: list[Point3D]
+    points: List[Point3D]
     period: float
     angular_frequency: float
 
 class WaveSuperpositionResponse(BaseModel):
     run_id: uuid.UUID
-    waves: list[WaveSeries]
-    combined_points: list[Point3D]
+    waves: List[WaveSeries]
+    combined_points: List[Point3D]
     cache_hit: bool
 
 class NodeVoltage(BaseModel):
@@ -47,9 +47,9 @@ class BranchCurrent(BaseModel):
 
 class CircuitResponse(BaseModel):
     run_id: uuid.UUID
-    node_voltages: list[NodeVoltage]
-    branch_currents: list[BranchCurrent]
-    total_resistance: float | None
+    node_voltages: List[NodeVoltage]
+    branch_currents: List[BranchCurrent]
+    total_resistance: Optional[float]
     total_power: float
     cache_hit: bool
 
@@ -62,13 +62,13 @@ class RunSummary(BaseModel):
     created_at: datetime
 
 class RunListResponse(BaseModel):
-    runs: list[RunSummary]
+    runs: List[RunSummary]
 
 class RunStatsResponse(BaseModel):
     total_runs: int
     saved_runs: int
     simulations_explored: int
-    last_active: datetime | None
+    last_active: Optional[datetime]
 
 class SaveRunResponse(BaseModel):
     run_id: uuid.UUID
