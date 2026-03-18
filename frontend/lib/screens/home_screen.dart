@@ -21,7 +21,14 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F18),
       appBar: AppBar(
-        title: const Text('EduViz'),
+        title: GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ClassSelectionScreen()),
+            );
+          },
+          child: const Text('EduViz'),
+        ),
         backgroundColor: const Color(0xFF0F0F18),
         foregroundColor: Colors.white,
         elevation: 0,
