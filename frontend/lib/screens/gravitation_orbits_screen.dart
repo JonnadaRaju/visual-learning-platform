@@ -1,15 +1,17 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/api_service.dart';
 import 'sim_widgets.dart';
 
-class GravitationOrbitsScreen extends StatefulWidget {
+class GravitationOrbitsScreen extends ConsumerStatefulWidget {
   const GravitationOrbitsScreen({super.key});
   @override
-  State<GravitationOrbitsScreen> createState() =>
+  ConsumerState<GravitationOrbitsScreen> createState() =>
       _GravitationOrbitsScreenState();
 }
 
-class _GravitationOrbitsScreenState extends State<GravitationOrbitsScreen>
+class _GravitationOrbitsScreenState extends ConsumerState<GravitationOrbitsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -41,6 +43,48 @@ class _GravitationOrbitsScreenState extends State<GravitationOrbitsScreen>
   double get _period => 2 * math.pi * _radius / _orbitalSpeed;
   double get _gravityForce => _mass / (_radius * _radius) * 100;
 
+  Future<void> _showAiExplanation(BuildContext context, String topic) async {
+    final api = ref.read(apiServiceProvider);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final explanation = await api.explainTopic(topic);
+      if (!mounted) return;
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+              SizedBox(width: 8),
+              Text('AI Explanation', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Text(explanation, style: const TextStyle(color: Colors.white70)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Got it!'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get explanation: $e')),
+      );
+    }
+  }
+
   void _togglePause() {
     setState(() {
       _isPaused = !_isPaused;
@@ -65,6 +109,13 @@ class _GravitationOrbitsScreenState extends State<GravitationOrbitsScreen>
         backgroundColor: AppColors.bg,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+            tooltip: 'Explain this topic',
+            onPressed: () => _showAiExplanation(context, 'gravitation-orbits'),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(22),
           child: Padding(

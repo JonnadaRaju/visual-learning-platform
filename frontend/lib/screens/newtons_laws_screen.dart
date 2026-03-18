@@ -1,14 +1,16 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/api_service.dart';
 import 'sim_widgets.dart';
 
-class NewtonsLawsScreen extends StatefulWidget {
+class NewtonsLawsScreen extends ConsumerStatefulWidget {
   const NewtonsLawsScreen({super.key});
   @override
-  State<NewtonsLawsScreen> createState() => _NewtonsLawsScreenState();
+  ConsumerState<NewtonsLawsScreen> createState() => _NewtonsLawsScreenState();
 }
 
-class _NewtonsLawsScreenState extends State<NewtonsLawsScreen>
+class _NewtonsLawsScreenState extends ConsumerState<NewtonsLawsScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -34,6 +36,48 @@ class _NewtonsLawsScreenState extends State<NewtonsLawsScreen>
 
   double get _netForce => _force - _friction * _mass * _g;
   double get _acceleration => _netForce / _mass;
+
+  Future<void> _showAiExplanation(BuildContext context, String topic) async {
+    final api = ref.read(apiServiceProvider);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final explanation = await api.explainTopic(topic);
+      if (!mounted) return;
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+              SizedBox(width: 8),
+              Text('AI Explanation', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Text(explanation, style: const TextStyle(color: Colors.white70)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Got it!'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get explanation: $e')),
+      );
+    }
+  }
 
   void _updatePhysics() {
     if (!_isRunning) return;
@@ -92,6 +136,13 @@ class _NewtonsLawsScreenState extends State<NewtonsLawsScreen>
         backgroundColor: AppColors.bg,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+            tooltip: 'Explain this topic',
+            onPressed: () => _showAiExplanation(context, 'newtons-laws'),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(22),
           child: Padding(

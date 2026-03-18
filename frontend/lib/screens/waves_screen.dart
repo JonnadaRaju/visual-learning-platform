@@ -1,14 +1,16 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/api_service.dart';
 import 'sim_widgets.dart';
 
-class WavesScreen extends StatefulWidget {
+class WavesScreen extends ConsumerStatefulWidget {
   const WavesScreen({super.key});
   @override
-  State<WavesScreen> createState() => _WavesScreenState();
+  ConsumerState<WavesScreen> createState() => _WavesScreenState();
 }
 
-class _WavesScreenState extends State<WavesScreen>
+class _WavesScreenState extends ConsumerState<WavesScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -29,6 +31,48 @@ class _WavesScreenState extends State<WavesScreen>
 
   double get _period => 1 / _frequency;
   double get _omega => 2 * math.pi * _frequency;
+
+  Future<void> _showAiExplanation(BuildContext context, String topic) async {
+    final api = ref.read(apiServiceProvider);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final explanation = await api.explainTopic(topic);
+      if (!mounted) return;
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+              SizedBox(width: 8),
+              Text('AI Explanation', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Text(explanation, style: const TextStyle(color: Colors.white70)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Got it!'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get explanation: $e')),
+      );
+    }
+  }
 
   void _togglePause() {
     setState(() {
@@ -54,6 +98,13 @@ class _WavesScreenState extends State<WavesScreen>
         backgroundColor: AppColors.bg,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+            tooltip: 'Explain this topic',
+            onPressed: () => _showAiExplanation(context, 'waves-shm'),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(22),
           child: Padding(

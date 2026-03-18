@@ -1,15 +1,16 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/api_service.dart';
 
 /// Maths: Geometry — Area, Perimeter & Pythagoras interactive visualizer
-class GeometryScreen extends StatefulWidget {
+class GeometryScreen extends ConsumerStatefulWidget {
   const GeometryScreen({super.key});
-
   @override
-  State<GeometryScreen> createState() => _GeometryScreenState();
+  ConsumerState<GeometryScreen> createState() => _GeometryScreenState();
 }
 
-class _GeometryScreenState extends State<GeometryScreen>
+class _GeometryScreenState extends ConsumerState<GeometryScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -62,6 +63,48 @@ class _GeometryScreenState extends State<GeometryScreen>
     }
   }
 
+  Future<void> _showAiExplanation(BuildContext context, String topic) async {
+    final api = ref.read(apiServiceProvider);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final explanation = await api.explainTopic(topic);
+      if (!mounted) return;
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+              SizedBox(width: 8),
+              Text('AI Explanation', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Text(explanation, style: const TextStyle(color: Colors.white70)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Got it!'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get explanation: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,6 +114,13 @@ class _GeometryScreenState extends State<GeometryScreen>
         backgroundColor: const Color(0xFF0F0F18),
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+            tooltip: 'Explain this topic',
+            onPressed: () => _showAiExplanation(context, 'geometry'),
+          ),
+        ],
       ),
       body: Column(
         children: [

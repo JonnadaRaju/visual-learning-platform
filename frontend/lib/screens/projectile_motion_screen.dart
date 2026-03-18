@@ -1,15 +1,17 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'sim_widgets.dart';
+import '../services/api_service.dart';
 
-class ProjectileMotionScreen extends StatefulWidget {
+class ProjectileMotionScreen extends ConsumerStatefulWidget {
   const ProjectileMotionScreen({super.key});
   @override
-  State<ProjectileMotionScreen> createState() =>
+  ConsumerState<ProjectileMotionScreen> createState() =>
       _ProjectileMotionScreenState();
 }
 
-class _ProjectileMotionScreenState extends State<ProjectileMotionScreen>
+class _ProjectileMotionScreenState extends ConsumerState<ProjectileMotionScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -85,6 +87,48 @@ class _ProjectileMotionScreenState extends State<ProjectileMotionScreen>
     super.dispose();
   }
 
+  Future<void> _showAiExplanation(BuildContext context, String topic) async {
+    final api = ref.read(apiServiceProvider);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final explanation = await api.explainTopic(topic);
+      if (!mounted) return;
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: const Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+              SizedBox(width: 8),
+              Text('AI Explanation', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Text(explanation, style: const TextStyle(color: Colors.white70)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Got it!'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get explanation: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,6 +157,13 @@ class _ProjectileMotionScreenState extends State<ProjectileMotionScreen>
             ),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+            tooltip: 'Explain this topic',
+            onPressed: () => _showAiExplanation(context, 'projectile-motion'),
+          ),
+        ],
       ),
       body: Column(
         children: [
