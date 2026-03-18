@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
@@ -18,7 +18,7 @@ from backend.schemas.response import CircuitResponse, ProjectileResponse, RunLis
 
 router = APIRouter(tags=['compute'])
 
-def require_session_id(session_id: str | None = Header(default=None, alias='X-Session-ID')) -> str:
+def require_session_id(session_id: Optional[str] = Header(default=None, alias='X-Session-ID')) -> str:
     if not session_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='X-Session-ID header is required')
     parse_uuid(session_id, 'X-Session-ID')
