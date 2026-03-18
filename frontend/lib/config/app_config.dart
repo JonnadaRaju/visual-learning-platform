@@ -5,7 +5,7 @@ class AppConfig {
   AppConfig._();
 
   static final AppConfig instance = AppConfig._();
-  static const String apiBaseUrl = 'https://eduviz-backend.vercel.app';
+  static const String apiBaseUrl = 'http://127.0.0.1:8000';
   static const String sessionKey = 'session_id';
   static const String selectedClassKey = 'selected_class';
 
