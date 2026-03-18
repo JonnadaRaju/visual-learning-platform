@@ -147,6 +147,43 @@ class _ConceptScreenState extends ConsumerState<ConceptScreen> {
     }
   }
 
+  Future<void> _explainTopic() async {
+    final api = ref.read(apiServiceProvider);
+    try {
+      final explanation = await api.explainTopic(widget.simulation.slug);
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Color(0xFF9C27B0)),
+              const SizedBox(width: 8),
+              Text(widget.simulation.name,
+                  style: const TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Text(explanation,
+                style: const TextStyle(color: Colors.white70)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Got it!'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get explanation: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final sim = widget.simulation;
@@ -160,6 +197,14 @@ class _ConceptScreenState extends ConsumerState<ConceptScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.auto_awesome,
+              color: Color(0xFFAAAAAA),
+            ),
+            tooltip: 'Explain this topic',
+            onPressed: _explainTopic,
+          ),
           IconButton(
             icon: Icon(
               _saving

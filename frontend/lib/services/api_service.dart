@@ -90,6 +90,25 @@ class ApiService {
     return RunStats.fromJson(response.data!);
   }
 
+  // ── AI Assistant ───────────────────────────────────────────────────────────
+
+  Future<String> explainTopic(String topic) async {
+    final response = await _request(
+      () => _dio.post<Map<String, dynamic>>('/ai/explain', data: {'topic': topic}),
+    );
+    return response.data?['answer'] as String? ?? 'No explanation received';
+  }
+
+  Future<String> askQuestion(String question, {String context = '', String topic = ''}) async {
+    final response = await _request(
+      () => _dio.post<Map<String, dynamic>>(
+        '/ai/ask',
+        data: {'question': question, 'context': context, 'topic': topic},
+      ),
+    );
+    return response.data?['answer'] as String? ?? 'No answer received';
+  }
+
   // ── Internal ───────────────────────────────────────────────────────────────
 
   Future<Response<T>> _request<T>(
