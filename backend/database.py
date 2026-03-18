@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Dict, List, Optional, Tuple
 
 import contextlib
 import uuid
@@ -33,7 +33,7 @@ class SimulationDefinition:
     slug: str
     description: str
     is_active: bool
-    parameters: list[SimulationParameter] = field(default_factory=list)
+    parameters: List[SimulationParameter] = field(default_factory=list)
 
 
 def get_connection():
@@ -95,7 +95,7 @@ def initialize_database() -> None:
             cursor.execute(schema_sql)
         connection.commit()
 
-def fetch_simulations() -> list[SimulationDefinition]:
+def fetch_simulations() -> List[SimulationDefinition]:
     query = """
         SELECT s.id,s.category,s.name,s.slug,s.description,s.is_active,
                p.id AS parameter_id,p.param_name,p.param_label,p.unit,p.min_value,p.max_value,p.default_value,p.step_size
@@ -110,7 +110,7 @@ def fetch_simulations() -> list[SimulationDefinition]:
             rows = cursor.fetchall()
     return _rows_to_simulations(rows)
 
-def fetch_simulation_by_slug(slug: str) -> SimulationDefinition | None:
+def fetch_simulation_by_slug(slug: str) -> Optional[SimulationDefinition]:
     query = """
         SELECT s.id,s.category,s.name,s.slug,s.description,s.is_active,
                p.id AS parameter_id,p.param_name,p.param_label,p.unit,p.min_value,p.max_value,p.default_value,p.step_size
@@ -126,7 +126,7 @@ def fetch_simulation_by_slug(slug: str) -> SimulationDefinition | None:
     simulations = _rows_to_simulations(rows)
     return simulations[0] if simulations else None
 
-def insert_run(session_id: str, simulation_slug: str, input_params: dict, result_payload: dict) -> uuid.UUID:
+def insert_run(session_id: str, simulation_slug: str, input_params: Dict, result_payload: Dict) -> uuid.UUID:
     query = """
         INSERT INTO simulation_runs (session_id, simulation_slug, input_params, result_payload)
         VALUES (%s, %s, %s, %s)
@@ -148,7 +148,7 @@ def mark_run_saved(session_id: str, run_id: uuid.UUID) -> bool:
         connection.commit()
     return bool(row and row['is_saved'])
 
-def fetch_runs(session_id: str) -> list[dict]:
+def fetch_runs(session_id: str) -> List[Dict]:
     query = "SELECT id, session_id, simulation_slug, input_params, result_payload, is_saved, created_at FROM simulation_runs WHERE session_id = %s ORDER BY created_at DESC"
     with get_db_connection() as connection:
         with connection.cursor() as cursor:
@@ -156,7 +156,7 @@ def fetch_runs(session_id: str) -> list[dict]:
             rows = cursor.fetchall()
     return [{'id': r['id'], 'session_id': r['session_id'], 'simulation_slug': r['simulation_slug'], 'input_params': r['input_params'], 'result_payload': r['result_payload'], 'is_saved': r['is_saved'], 'created_at': r['created_at']} for r in rows]
 
-def fetch_run_stats(session_id: str) -> dict:
+def fetch_run_stats(session_id: str) -> Dict:
     query = "SELECT COUNT(*) AS total_runs, COUNT(*) FILTER (WHERE is_saved = TRUE) AS saved_runs, COUNT(DISTINCT simulation_slug) AS simulations_explored, MAX(created_at) AS last_active FROM simulation_runs WHERE session_id = %s"
     with get_db_connection() as connection:
         with connection.cursor() as cursor:
@@ -164,7 +164,7 @@ def fetch_run_stats(session_id: str) -> dict:
             row = cursor.fetchone()
     return {'total_runs': row['total_runs'] or 0, 'saved_runs': row['saved_runs'] or 0, 'simulations_explored': row['simulations_explored'] or 0, 'last_active': row['last_active']}
 
-def upsert_simulation(item: dict) -> uuid.UUID:
+def upsert_simulation(item: Dict) -> uuid.UUID:
     query = """
         INSERT INTO simulations (category, name, slug, description, is_active)
         VALUES (%s, %s, %s, %s, TRUE)
@@ -179,7 +179,7 @@ def upsert_simulation(item: dict) -> uuid.UUID:
         connection.commit()
     return simulation_id
 
-def replace_simulation_parameters(simulation_id: uuid.UUID, parameters: list[tuple]) -> None:
+def replace_simulation_parameters(simulation_id: uuid.UUID, parameters: List[Tuple]) -> None:
     with get_db_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute('DELETE FROM simulation_parameters WHERE simulation_id = %s', (str(simulation_id),))
@@ -190,8 +190,8 @@ def replace_simulation_parameters(simulation_id: uuid.UUID, parameters: list[tup
                 )
         connection.commit()
 
-def _rows_to_simulations(rows: list[dict]) -> list[SimulationDefinition]:
-    simulations: dict[uuid.UUID, SimulationDefinition] = {}
+def _rows_to_simulations(rows: List[Dict]) -> List[SimulationDefinition]:
+    simulations: Dict[uuid.UUID, SimulationDefinition] = {}
     for row in rows:
         simulation_id = row['id']
         simulation = simulations.get(simulation_id)
