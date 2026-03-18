@@ -16,40 +16,24 @@ import 'geometry_screen.dart';
 import 'atomic_structure_screen.dart';
 import 'acids_bases_screen.dart';
 
-/// All slugs that have a dedicated local screen — no API required.
-const _localSlugs = {
-  // Physics
-  'projectile-motion',
-  'waves-shm',
-  'electric-circuits',
-  'gravitation-orbits',
-  'newtons-laws',
-  'fluid-pressure',
-  // Maths
-  'linear-equations',
-  'geometry',
-  // Chemistry
-  'atomic-structure',
-  'acids-bases',
-};
-
-IconData _topicIcon(String name) {
-  final l = name.toLowerCase();
-  if (l.contains('projectile')) return Icons.show_chart;
-  if (l.contains('wave') || l.contains('shm')) return Icons.waves;
-  if (l.contains('circuit') || l.contains('electric')) return Icons.electric_bolt;
-  if (l.contains('gravitation') || l.contains('gravity')) return Icons.public;
-  if (l.contains('newton')) return Icons.balance;
-  if (l.contains('fluid') || l.contains('pressure')) return Icons.water_drop;
-  if (l.contains('linear') || l.contains('equation')) return Icons.trending_up;
-  if (l.contains('geometry') || l.contains('triangle') || l.contains('circle')) return Icons.change_history;
-  if (l.contains('atom') || l.contains('structure')) return Icons.grain;
-  if (l.contains('acid') || l.contains('base') || l.contains('ph')) return Icons.science;
-  return Icons.science_outlined;
+IconData _topicIcon(String slug) {
+  switch (slug) {
+    case 'projectile-motion':   return Icons.show_chart;
+    case 'waves-shm':           return Icons.waves;
+    case 'electric-circuits':   return Icons.electric_bolt;
+    case 'gravitation-orbits':  return Icons.public;
+    case 'newtons-laws':        return Icons.balance;
+    case 'fluid-pressure':      return Icons.water_drop;
+    case 'linear-equations':    return Icons.trending_up;
+    case 'geometry':            return Icons.change_history;
+    case 'atomic-structure':    return Icons.grain;
+    case 'acids-bases':         return Icons.science;
+    default:                    return Icons.science_outlined;
+  }
 }
 
-Widget _getSimulationScreen(String slug, SimulationDefinition? simulation) {
-  switch (slug) {
+Widget _getSimulationScreen(SimulationDefinition simulation) {
+  switch (simulation.slug) {
     case 'projectile-motion':   return const ProjectileMotionScreen();
     case 'waves-shm':           return const WavesScreen();
     case 'electric-circuits':   return const ElectricCircuitsScreen();
@@ -61,8 +45,9 @@ Widget _getSimulationScreen(String slug, SimulationDefinition? simulation) {
     case 'atomic-structure':    return const AtomicStructureScreen();
     case 'acids-bases':         return const AcidsBasesScreen();
     default:
-      if (simulation != null) return ConceptScreen(simulation: simulation);
-      return const _ComingSoonScreen();
+      // API returned a slug we don't have a local screen for yet
+      // → fall back to ConceptScreen (API-driven UI)
+      return ConceptScreen(simulation: simulation);
   }
 }
 
@@ -80,18 +65,14 @@ class TopicListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final apiAvailable = {for (final s in simulations) s.slug: s};
-
-    // Show topic if it has a local screen OR API returned it
-    final topics = topicCatalog
-        .where((t) => t.subjectId == subject.id)
-        .where((t) => t.matchesClass(selectedClass))
-        .where((t) =>
-            _localSlugs.contains(t.simulationSlug) ||
-            apiAvailable.containsKey(t.simulationSlug))
+    // Filter simulations for this subject and class — data comes from API
+    final topics = simulations
+        .where((s) => s.subjectId == subject.id)
+        .where((s) => s.matchesClass(selectedClass))
         .toList();
 
-    final byCategory = <String, List<TopicCatalogItem>>{};
+    // Group by category
+    final byCategory = <String, List<SimulationDefinition>>{};
     for (final topic in topics) {
       byCategory.putIfAbsent(topic.category, () => []).add(topic);
     }
@@ -122,7 +103,8 @@ class TopicListScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.science_outlined,
-                        color: subject.accent.withValues(alpha: 0.4), size: 56),
+                        color: subject.accent.withValues(alpha: 0.4),
+                        size: 56),
                     const SizedBox(height: 16),
                     Text(
                       'No topics for Class $selectedClass yet.',
@@ -146,7 +128,10 @@ class TopicListScreen extends StatelessWidget {
                     children: [
                       Text(
                         entry.key.toUpperCase(),
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelLarge
+                            ?.copyWith(
                               color: const Color(0xFF888899),
                               letterSpacing: 1.4,
                             ),
@@ -163,9 +148,7 @@ class TopicListScreen extends StatelessWidget {
                           childAspectRatio: 1.0,
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          children: entry.value.map((topic) {
-                            final simulation =
-                                apiAvailable[topic.simulationSlug];
+                          children: entry.value.map((simulation) {
                             return InkWell(
                               borderRadius: BorderRadius.circular(12),
                               onTap: () {
@@ -180,8 +163,7 @@ class TopicListScreen extends StatelessWidget {
                                           foregroundColor: Colors.white,
                                         ),
                                       ),
-                                      child: _getSimulationScreen(
-                                          topic.simulationSlug, simulation),
+                                      child: _getSimulationScreen(simulation),
                                     ),
                                   ),
                                 );
@@ -212,17 +194,18 @@ class TopicListScreen extends StatelessWidget {
                                       height: 40,
                                       decoration: BoxDecoration(
                                         color: subject.accent.withOpacity(0.22),
-                                        borderRadius: BorderRadius.circular(10),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
                                       ),
                                       child: Icon(
-                                        _topicIcon(topic.name),
+                                        _topicIcon(simulation.slug),
                                         size: 20,
                                         color: subject.accent,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      topic.name,
+                                      simulation.name,
                                       textAlign: TextAlign.center,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
@@ -232,6 +215,13 @@ class TopicListScreen extends StatelessWidget {
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
+                                    // Show emoji if available
+                                    if (simulation.emoji.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(simulation.emoji,
+                                          style:
+                                              const TextStyle(fontSize: 12)),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -244,25 +234,6 @@ class TopicListScreen extends StatelessWidget {
                 );
               }).toList(),
             ),
-    );
-  }
-}
-
-class _ComingSoonScreen extends StatelessWidget {
-  const _ComingSoonScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F18),
-      appBar: AppBar(
-          backgroundColor: const Color(0xFF0F0F18),
-          foregroundColor: Colors.white,
-          elevation: 0),
-      body: const Center(
-        child: Text('Simulation coming soon!',
-            style: TextStyle(color: Colors.white70, fontSize: 18)),
-      ),
     );
   }
 }
