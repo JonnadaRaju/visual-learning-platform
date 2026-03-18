@@ -5,3 +5,20 @@ services:
     buildCommand: "pip install --only-binary=:all: -r requirements.txt"
     startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
     pythonVersion: "3.11"
+    envVars:
+      - key: APP_NAME
+        value: EduViz
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: REDIS_TTL
+        value: "600"
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: SARVAM_API_KEY
+        sync: false
