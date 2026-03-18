@@ -129,14 +129,6 @@ const subjectCatalog = <SubjectCatalogItem>[
     gradient: [Color(0xFFBF360C), Color(0xFFFF7043)],
     accent: Color(0xFFFF8A65),
   ),
-  SubjectCatalogItem(
-    id: 'biology',
-    name: 'Biology',
-    emoji: '🧬',
-    gradient: [Color(0xFF1B5E20), Color(0xFF66BB6A)],
-    accent: Color(0xFF81C784),
-    comingSoon: true,
-  ),
 ];
 
 // ── Local fallback catalog ────────────────────────────────────────────────────

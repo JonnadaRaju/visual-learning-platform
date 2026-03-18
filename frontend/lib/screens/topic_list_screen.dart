@@ -63,15 +63,27 @@ class TopicListScreen extends StatelessWidget {
   final int selectedClass;
   final List<SimulationDefinition> simulations;
 
-  @override
-  Widget build(BuildContext context) {
-    // Filter simulations for this subject and class — data comes from API
-    final topics = simulations
+  List<SimulationDefinition> _getTopics() {
+    var topics = simulations
         .where((s) => s.subjectId == subject.id)
         .where((s) => s.matchesClass(selectedClass))
         .toList();
 
-    // Group by category
+    if (topics.isEmpty) {
+      topics = localTopicCatalog
+          .where((t) => t.subjectId == subject.id)
+          .where((t) => t.matchesClass(selectedClass))
+          .map((t) => t.toSimulationDefinition())
+          .toList();
+    }
+
+    return topics;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topics = _getTopics();
+
     final byCategory = <String, List<SimulationDefinition>>{};
     for (final topic in topics) {
       byCategory.putIfAbsent(topic.category, () => []).add(topic);
@@ -215,7 +227,6 @@ class TopicListScreen extends StatelessWidget {
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    // Show emoji if available
                                     if (simulation.emoji.isNotEmpty) ...[
                                       const SizedBox(height: 2),
                                       Text(simulation.emoji,

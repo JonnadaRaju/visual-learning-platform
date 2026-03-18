@@ -1,10 +1,8 @@
 import os
 import sys
 
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, parent_dir)
+sys.path.insert(0, current_dir)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,13 +41,21 @@ try:
     from database import initialize_database, verify_database_connection
     from cache import verify_cache_connection
     initialize_database()
+    verify_database_connection()
     verify_cache_connection()
 except Exception as e:
     print(f'Could not initialize connections: {e}')
 
 @app.get('/health')
 def health():
-    return {'status': 'ok'}
+    from database import verify_database_connection
+    from cache import verify_cache_connection
+    try:
+        verify_database_connection()
+        verify_cache_connection()
+        return {'status': 'ok', 'database': 'connected', 'cache': 'connected'}
+    except Exception as e:
+        return {'status': 'error', 'detail': str(e)}
 
 @app.get('/')
 def root():
