@@ -264,7 +264,6 @@ class _SubjectCardState extends State<_SubjectCard> {
       case 'physics':   return Icons.science;
       case 'maths':     return Icons.calculate;
       case 'chemistry': return Icons.biotech;
-      case 'biology':   return Icons.eco;
       default:          return Icons.menu_book_rounded;
     }
   }
