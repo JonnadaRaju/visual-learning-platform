@@ -33,7 +33,7 @@ class SimulationDefinition:
     name: str
     slug: str
     emoji: str
-    class_range: str          # comma-separated e.g. "9,10,11,12"
+    class_range: str          
     description: str
     is_active: bool
     parameters: List[SimulationParameter] = field(default_factory=list)
@@ -41,7 +41,7 @@ class SimulationDefinition:
 
 def get_connection():
     try:
-        return psycopg2.connect(settings.database_url, cursor_factory=RealDictCursor)
+        return psycopg2.connect(settings.database_url, cursor_factory=RealDictCursor, sslmode='require')
     except psycopg2.Error as exc:
         raise RuntimeError(
             f'Failed to connect to PostgreSQL using DATABASE_URL: {exc}'
