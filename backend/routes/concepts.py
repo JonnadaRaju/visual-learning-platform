@@ -31,7 +31,7 @@ def list_simulations():
                 parameters=[_param(p) for p in s.parameters],
                 subject_id=getattr(s, 'subject_id', 'physics'),
                 emoji=getattr(s, 'emoji', '⚛️'),
-                class_range=getattr(s, 'class_range', [6, 7, 8, 9, 10, 11, 12]),
+                class_range=getattr(s, 'class_range', '6,7,8,9,10,11,12') if isinstance(getattr(s, 'class_range', None), str) else '6,7,8,9,10,11,12',
             )
             for s in simulations
         ]
@@ -49,4 +49,7 @@ def get_simulation(slug: str):
         slug=simulation.slug,
         description=simulation.description,
         parameters=[_param(p) for p in simulation.parameters],
+        subject_id=getattr(simulation, 'subject_id', 'physics'),
+        emoji=getattr(simulation, 'emoji', '⚛️'),
+        class_range=str(getattr(simulation, 'class_range', '6,7,8,9,10,11,12')),
     )
