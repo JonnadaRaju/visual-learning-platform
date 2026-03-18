@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import List
 
 import os
 from functools import lru_cache
@@ -19,7 +19,7 @@ class Settings(BaseModel):
     database_url: str = Field(alias='DATABASE_URL')
     redis_url: str = Field(alias='REDIS_URL')
     redis_ttl: int = Field(alias='REDIS_TTL')
-    allowed_origins: list[str]
+    allowed_origins: List[str]
 
     @classmethod
     def from_environment(cls) -> 'Settings':
