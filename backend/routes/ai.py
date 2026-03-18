@@ -5,7 +5,7 @@ import os
 router = APIRouter(prefix='/ai', tags=['ai'])
 
 class QuestionRequest(BaseModel):
-    question: str
+    question: str = ""
     context: str = ""
     topic: str = ""
 
@@ -62,7 +62,8 @@ Student's question: {request.question}"""
         raise HTTPException(status_code=500, detail=f'Error getting answer: {str(e)}')
 
 @router.post('/explain', response_model=AnswerResponse)
-async def explain_topic(topic: str):
+async def explain_topic(request: QuestionRequest):
+    topic = request.topic
     api_key = os.getenv('SARVAM_API_KEY')
     if not api_key:
         raise HTTPException(status_code=500, detail='SARVAM_API_KEY not configured')
