@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+// ── API model (matches backend SimulationListItem) ────────────────────────────
+
 class SimulationParameter {
   const SimulationParameter({
     required this.id,
@@ -21,7 +23,8 @@ class SimulationParameter {
   final double defaultValue;
   final double stepSize;
 
-  factory SimulationParameter.fromJson(Map<String, dynamic> json) => SimulationParameter(
+  factory SimulationParameter.fromJson(Map<String, dynamic> json) =>
+      SimulationParameter(
         id: json['id'] as String,
         paramName: json['param_name'] as String,
         paramLabel: json['param_label'] as String,
@@ -36,31 +39,54 @@ class SimulationParameter {
 class SimulationDefinition {
   const SimulationDefinition({
     required this.id,
+    required this.subjectId,
     required this.category,
     required this.name,
     required this.slug,
+    required this.emoji,
+    required this.classRange,
     required this.description,
     required this.parameters,
   });
 
   final String id;
+  final String subjectId;   // 'physics' | 'maths' | 'chemistry'
   final String category;
   final String name;
   final String slug;
+  final String emoji;
+  final List<int> classRange; // parsed from '9,10,11,12'
   final String description;
   final List<SimulationParameter> parameters;
 
-  factory SimulationDefinition.fromJson(Map<String, dynamic> json) => SimulationDefinition(
-        id: json['id'] as String,
-        category: json['category'] as String,
-        name: json['name'] as String,
-        slug: json['slug'] as String,
-        description: json['description'] as String,
-        parameters: (json['parameters'] as List<dynamic>)
-            .map((e) => SimulationParameter.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+  bool matchesClass(int selectedClass) => classRange.contains(selectedClass);
+
+  factory SimulationDefinition.fromJson(Map<String, dynamic> json) {
+    // Parse class_range from '9,10,11,12' → [9, 10, 11, 12]
+    final rawRange = json['class_range'] as String? ?? '9,10,11,12';
+    final classRange = rawRange
+        .split(',')
+        .map((s) => int.tryParse(s.trim()))
+        .whereType<int>()
+        .toList();
+
+    return SimulationDefinition(
+      id: json['id'] as String,
+      subjectId: json['subject_id'] as String? ?? 'physics',
+      category: json['category'] as String,
+      name: json['name'] as String,
+      slug: json['slug'] as String,
+      emoji: json['emoji'] as String? ?? '',
+      classRange: classRange,
+      description: json['description'] as String,
+      parameters: (json['parameters'] as List<dynamic>)
+          .map((e) => SimulationParameter.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
+
+// ── UI catalog models (used for subject cards) ────────────────────────────────
 
 class SubjectCatalogItem {
   const SubjectCatalogItem({
@@ -80,6 +106,42 @@ class SubjectCatalogItem {
   final bool comingSoon;
 }
 
+// Static subject catalog — visual styling only, topics come from API
+const subjectCatalog = <SubjectCatalogItem>[
+  SubjectCatalogItem(
+    id: 'physics',
+    name: 'Physics',
+    emoji: '📚',
+    gradient: [Color(0xFF1565C0), Color(0xFF0288D1)],
+    accent: Color(0xFF42A5F5),
+  ),
+  SubjectCatalogItem(
+    id: 'maths',
+    name: 'Maths',
+    emoji: '📐',
+    gradient: [Color(0xFF6A1B9A), Color(0xFFAB47BC)],
+    accent: Color(0xFFBA68C8),
+  ),
+  SubjectCatalogItem(
+    id: 'chemistry',
+    name: 'Chemistry',
+    emoji: '🧪',
+    gradient: [Color(0xFFBF360C), Color(0xFFFF7043)],
+    accent: Color(0xFFFF8A65),
+  ),
+  SubjectCatalogItem(
+    id: 'biology',
+    name: 'Biology',
+    emoji: '🧬',
+    gradient: [Color(0xFF1B5E20), Color(0xFF66BB6A)],
+    accent: Color(0xFF81C784),
+    comingSoon: true,
+  ),
+];
+
+// ── Local fallback catalog ────────────────────────────────────────────────────
+// Used when the backend is offline. Mirrors the seed_data.py entries exactly.
+
 class TopicCatalogItem {
   const TopicCatalogItem({
     required this.subjectId,
@@ -97,98 +159,54 @@ class TopicCatalogItem {
   final String emoji;
   final List<int> classRange;
 
-  bool matchesClass(int selectedClass) => classRange.contains(selectedClass);
+  bool matchesClass(int c) => classRange.contains(c);
+
+  // Build a minimal SimulationDefinition from local data (no parameters)
+  SimulationDefinition toSimulationDefinition() => SimulationDefinition(
+        id: simulationSlug,
+        subjectId: subjectId,
+        category: category,
+        name: name,
+        slug: simulationSlug,
+        emoji: emoji,
+        classRange: classRange,
+        description: '',
+        parameters: [],
+      );
 }
 
-const subjectCatalog = <SubjectCatalogItem>[
-  SubjectCatalogItem(
-    id: 'physics',
-    name: 'Physics',
-    emoji: '📚',
-    gradient: [Color(0xFF1B5E20), Color(0xFF66BB6A)],
-    accent: Color(0xFF81C784),
-  ),
-  SubjectCatalogItem(
-    id: 'maths',
-    name: 'Maths',
-    emoji: '📐',
-    gradient: [Color(0xFF6A1B9A), Color(0xFFAB47BC)],
-    accent: Color(0xFFBA68C8),
-  ),
-  SubjectCatalogItem(
-    id: 'chemistry',
-    name: 'Chemistry',
-    emoji: '🧪',
-    gradient: [Color(0xFFBF360C), Color(0xFFFF7043)],
-    accent: Color(0xFFFF8A65),
-  ),
-];
-
-const topicCatalog = <TopicCatalogItem>[
-  TopicCatalogItem(
-    subjectId: 'physics',
-    simulationSlug: 'projectile-motion',
-    name: 'Projectile Motion',
-    category: 'Mechanics',
-    emoji: '🏏',
-    classRange: [9, 10, 11, 12],
-  ),
-  TopicCatalogItem(
-    subjectId: 'physics',
-    simulationSlug: 'waves-shm',
-    name: 'Waves / SHM',
-    category: 'Mechanics',
-    emoji: '🌊',
-    classRange: [9, 10, 11, 12],
-  ),
-  TopicCatalogItem(
-    subjectId: 'physics',
-    simulationSlug: 'newtons-laws',
-    name: "Newton's Laws",
-    category: 'Mechanics',
-    emoji: '⚖️',
-    classRange: [9, 10, 11, 12],
-  ),
-  TopicCatalogItem(
-    subjectId: 'physics',
-    simulationSlug: 'fluid-pressure',
-    name: 'Fluid Pressure',
-    category: 'Fluids',
-    emoji: '💧',
-    classRange: [9, 10, 11, 12],
-  ),
+const localTopicCatalog = <TopicCatalogItem>[
+  // Physics
+  TopicCatalogItem(subjectId: 'physics', simulationSlug: 'projectile-motion',
+      name: 'Projectile Motion', category: 'Mechanics',
+      emoji: '🏏', classRange: [9, 10, 11, 12]),
+  TopicCatalogItem(subjectId: 'physics', simulationSlug: 'waves-shm',
+      name: 'Waves / SHM', category: 'Mechanics',
+      emoji: '🌊', classRange: [9, 10, 11, 12]),
+  TopicCatalogItem(subjectId: 'physics', simulationSlug: 'electric-circuits',
+      name: 'Electric Circuits', category: 'Electricity',
+      emoji: '⚡', classRange: [9, 10, 11, 12]),
+  TopicCatalogItem(subjectId: 'physics', simulationSlug: 'gravitation-orbits',
+      name: 'Gravitation & Orbits', category: 'Mechanics',
+      emoji: '🪐', classRange: [9, 10, 11, 12]),
+  TopicCatalogItem(subjectId: 'physics', simulationSlug: 'newtons-laws',
+      name: "Newton's Laws", category: 'Mechanics',
+      emoji: '⚖️', classRange: [9, 10, 11, 12]),
+  TopicCatalogItem(subjectId: 'physics', simulationSlug: 'fluid-pressure',
+      name: 'Fluid Pressure', category: 'Fluids',
+      emoji: '💧', classRange: [9, 10, 11, 12]),
   // Maths
-  TopicCatalogItem(
-    subjectId: 'maths',
-    simulationSlug: 'linear-equations',
-    name: 'Linear Equations',
-    category: 'Algebra',
-    emoji: '📈',
-    classRange: [6, 7, 8, 9, 10],
-  ),
-  TopicCatalogItem(
-    subjectId: 'maths',
-    simulationSlug: 'geometry',
-    name: 'Geometry',
-    category: 'Geometry',
-    emoji: '📐',
-    classRange: [6, 7, 8, 9, 10],
-  ),
+  TopicCatalogItem(subjectId: 'maths', simulationSlug: 'linear-equations',
+      name: 'Linear Equations', category: 'Algebra',
+      emoji: '📈', classRange: [6, 7, 8, 9, 10, 11, 12]),
+  TopicCatalogItem(subjectId: 'maths', simulationSlug: 'geometry',
+      name: 'Geometry', category: 'Geometry',
+      emoji: '📐', classRange: [6, 7, 8, 9, 10, 11, 12]),
   // Chemistry
-  TopicCatalogItem(
-    subjectId: 'chemistry',
-    simulationSlug: 'atomic-structure',
-    name: 'Atomic Structure',
-    category: 'Atomic Structure',
-    emoji: '⚛️',
-    classRange: [9, 10, 11, 12],
-  ),
-  TopicCatalogItem(
-    subjectId: 'chemistry',
-    simulationSlug: 'acids-bases',
-    name: 'Acids & Bases',
-    category: 'Acids & Bases',
-    emoji: '🧪',
-    classRange: [9, 10, 11, 12],
-  ),
+  TopicCatalogItem(subjectId: 'chemistry', simulationSlug: 'atomic-structure',
+      name: 'Atomic Structure', category: 'Atomic Theory',
+      emoji: '⚛️', classRange: [6, 7, 8, 9, 10, 11, 12]),
+  TopicCatalogItem(subjectId: 'chemistry', simulationSlug: 'acids-bases',
+      name: 'Acids & Bases', category: 'Chemical Reactions',
+      emoji: '🧪', classRange: [7, 8, 9, 10, 11, 12]),
 ];
