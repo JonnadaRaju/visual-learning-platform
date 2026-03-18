@@ -29,6 +29,11 @@ TOPIC_CONTEXT = {
     "acids-bases": "Acids and Bases - Learn about properties of acids and bases, pH scale, and neutralization reactions.",
 }
 
+LANGUAGE_NAMES = {
+    "en": "English",
+    "te": "Telugu",
+}
+
 def strip_markdown(text: str) -> str:
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
     text = re.sub(r'\*([^*]+)\*', r'\1', text)
@@ -115,28 +120,3 @@ Just use clear plain paragraphs."""},
         return AnswerResponse(answer=answer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f'Error getting explanation: {str(e)}')
-
-@router.post('/speak', response_model=AudioResponse)
-async def text_to_speech(request: QuestionRequest):
-    api_key = os.getenv('SARVAM_API_KEY')
-    if not api_key:
-        raise HTTPException(status_code=500, detail='SARVAM_API_KEY not configured')
-    
-    if not request.question:
-        raise HTTPException(status_code=400, detail='Text is required for TTS')
-    
-    try:
-        from sarvamai import SarvamAI
-        client = SarvamAI(api_subscription_key=api_key)
-        
-        audio_response = client.text.speech(
-            inputs=[request.question],
-            model="sarvam-tts",
-            target_language="en-IN"
-        )
-        
-        audio_base64 = audio_response.audio[0].audio_base64
-        
-        return AudioResponse(audio_url=f"data:audio/wav;base64,{audio_base64}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f'Error generating audio: {str(e)}')
