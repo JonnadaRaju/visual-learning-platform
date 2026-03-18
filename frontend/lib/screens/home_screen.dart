@@ -14,21 +14,12 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedClass = AppConfig.instance.selectedClass;
-    if (selectedClass == null) {
-      return const ClassSelectionScreen();
-    }
+    if (selectedClass == null) return const ClassSelectionScreen();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F18),
       appBar: AppBar(
-        title: GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ClassSelectionScreen()),
-            );
-          },
-          child: const Text('EduViz'),
-        ),
+        title: const Text('EduViz'),
         backgroundColor: const Color(0xFF0F0F18),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -36,11 +27,8 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.history_rounded, color: Color(0xFFAAAAAA)),
             tooltip: 'Run History',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const HistoryScreen()),
-              );
-            },
+            onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HistoryScreen())),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -51,18 +39,15 @@ class HomeScreen extends ConsumerWidget {
                   style: const TextStyle(color: Colors.white)),
               avatar: const Icon(Icons.tune_rounded,
                   size: 18, color: Color(0xFFAAAAAA)),
-              onPressed: () {
-                Navigator.of(context).push(
+              onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (_) => const ClassSelectionScreen()),
-                );
-              },
+                      builder: (_) => const ClassSelectionScreen())),
             ),
           ),
         ],
       ),
       body: FutureBuilder<List<SimulationDefinition>>(
-        // Gracefully handle API being down — local screens still work
+        // Try API first, fall back to local catalog on error
         future: ref
             .read(apiServiceProvider)
             .fetchSimulations()
@@ -73,31 +58,21 @@ class HomeScreen extends ConsumerWidget {
                 child: CircularProgressIndicator(color: Color(0xFF378ADD)));
           }
 
-          final simulations = snapshot.data ?? const <SimulationDefinition>[];
-          final apiSlugs = simulations.map((s) => s.slug).toSet();
+          final apiSimulations =
+              snapshot.data ?? const <SimulationDefinition>[];
+          final apiOffline = snapshot.hasError ||
+              (apiSimulations.isEmpty &&
+                  snapshot.connectionState == ConnectionState.done);
 
-          // Slugs that have a dedicated local screen — always available
-          const localSlugs = {
-            'projectile-motion',
-            'waves-shm',
-            'electric-circuits',
-            'gravitation-orbits',
-            'newtons-laws',
-            'fluid-pressure',
-            'linear-equations',
-            'geometry',
-            'atomic-structure',
-            'acids-bases',
-          };
-
-          bool isAvailable(TopicCatalogItem topic) =>
-              localSlugs.contains(topic.simulationSlug) ||
-              apiSlugs.contains(topic.simulationSlug);
+          // When API is online, use API data.
+          // When offline, build SimulationDefinitions from local catalog.
+          final simulations = apiOffline
+              ? localTopicCatalog
+                  .map((t) => t.toSimulationDefinition())
+                  .toList()
+              : apiSimulations;
 
           final greeting = _greeting();
-          final apiOffline = snapshot.hasError ||
-              (simulations.isEmpty &&
-                  snapshot.connectionState == ConnectionState.done);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -119,154 +94,130 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 if (apiOffline) ...[
                   const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                          color: Colors.amber.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded,
-                            color: Colors.amber, size: 16),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Backend offline — all local simulations are still available.',
-                            style: TextStyle(
-                                color: Colors.amber.withValues(alpha: 0.85),
-                                fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _offlineBanner(),
                 ],
                 const SizedBox(height: 24),
-                // Responsive grid — fixed card height ~160px
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final w = constraints.maxWidth;
-                    final cols = w > 1000 ? 4 : w > 650 ? 3 : 2;
-                    const cardH = 160.0;
-                    final cardW = (w - (cols - 1) * 8) / cols;
-                    final ratio = cardW / cardH;
+                LayoutBuilder(builder: (context, constraints) {
+                  final w = constraints.maxWidth;
+                  final cols = w > 1000 ? 4 : w > 650 ? 3 : 2;
+                  const cardH = 160.0;
+                  final cardW = (w - (cols - 1) * 8) / cols;
+                  final ratio = cardW / cardH;
 
-                    return GridView.count(
-                      crossAxisCount: cols,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                      childAspectRatio: ratio,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: subjectCatalog.map((subject) {
-                        final topicCount = topicCatalog
-                            .where((t) => t.subjectId == subject.id)
-                            .where((t) => t.matchesClass(selectedClass))
-                            .where((t) => isAvailable(t))
-                            .length;
-                        final enabled = !subject.comingSoon;
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: !enabled
-                              ? null
-                              : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => TopicListScreen(
-                                        subject: subject,
-                                        selectedClass: selectedClass,
-                                        simulations: simulations,
-                                      ),
+                  return GridView.count(
+                    crossAxisCount: cols,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: ratio,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: subjectCatalog.map((subject) {
+                      // Count topics for this subject + class from simulations list
+                      final topicCount = simulations
+                          .where((s) => s.subjectId == subject.id)
+                          .where((s) => s.matchesClass(selectedClass))
+                          .length;
+
+                      final enabled = !subject.comingSoon && topicCount > 0;
+
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: !enabled
+                            ? null
+                            : () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => TopicListScreen(
+                                      subject: subject,
+                                      selectedClass: selectedClass,
+                                      simulations: simulations,
                                     ),
-                                  );
-                                },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Stack(
-                              children: [
+                                  ),
+                                ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: subject.gradient,
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (!enabled)
                                 Positioned.fill(
                                   child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: subject.gradient,
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                    ),
-                                  ),
+                                      color: Colors.black
+                                          .withValues(alpha: 0.35)),
                                 ),
-                                Positioned(
-                                  top: 12,
-                                  right: 12,
-                                  child: Container(
-                                    width: 38,
-                                    height: 38,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white
-                                          .withValues(alpha: 0.20),
-                                      borderRadius:
-                                          BorderRadius.circular(10),
-                                    ),
-                                    child: Icon(_subjectIcon(subject.id),
-                                        size: 20, color: Colors.white),
+                              Positioned(
+                                top: 12,
+                                right: 12,
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.20),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
+                                  child: Icon(_subjectIcon(subject.id),
+                                      size: 20, color: Colors.white),
                                 ),
-                                Positioned(
-                                  bottom: 12,
-                                  left: 12,
-                                  right: 60,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (subject.comingSoon)
-                                        Container(
-                                          margin: const EdgeInsets.only(
-                                              bottom: 6),
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.25),
-                                            borderRadius:
-                                                BorderRadius.circular(999),
-                                          ),
-                                          child: const Text('Coming Soon',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10)),
+                              ),
+                              Positioned(
+                                bottom: 12,
+                                left: 12,
+                                right: 60,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (subject.comingSoon)
+                                      Container(
+                                        margin:
+                                            const EdgeInsets.only(bottom: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.25),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
                                         ),
-                                      Text(
-                                        subject.name,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
+                                        child: const Text('Coming Soon',
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10)),
                                       ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        '$topicCount topics',
+                                    Text(subject.name,
                                         style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.white70),
-                                      ),
-                                    ],
-                                  ),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white)),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      topicCount == 0
+                                          ? 'Coming soon'
+                                          : '$topicCount topics',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white70),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        );
-                      }).toList(),
-                    );
-                  },
-                ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }),
               ],
             ),
           );
@@ -275,6 +226,32 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  Widget _offlineBanner() => Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+          border:
+              Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline_rounded,
+                color: Colors.amber, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Backend offline — showing local simulations.',
+                style: TextStyle(
+                    color: Colors.amber.withValues(alpha: 0.85),
+                    fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      );
+
   String _greeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'Good morning!';
@@ -282,16 +259,13 @@ class HomeScreen extends ConsumerWidget {
     return 'Good evening!';
   }
 
-  IconData _subjectIcon(String subjectId) {
-    switch (subjectId) {
-      case 'physics':
-        return Icons.science;
-      case 'maths':
-        return Icons.calculate;
-      case 'chemistry':
-        return Icons.biotech;
-      default:
-        return Icons.menu_book_rounded;
+  IconData _subjectIcon(String id) {
+    switch (id) {
+      case 'physics':   return Icons.science;
+      case 'maths':     return Icons.calculate;
+      case 'chemistry': return Icons.biotech;
+      case 'biology':   return Icons.eco;
+      default:          return Icons.menu_book_rounded;
     }
   }
 }
