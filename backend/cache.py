@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Dict
 
 import json
 import logging
@@ -27,7 +27,7 @@ def cache_get(key: str):
         logger.warning('Redis get failed for key %s: %s', key, exc)
         return None
 
-def cache_set(key: str, value: dict, ttl_seconds: int) -> None:
+def cache_set(key: str, value: Dict, ttl_seconds: int) -> None:
     try:
         redis_client.setex(key, ttl_seconds, json.dumps(value))
     except RedisError as exc:
