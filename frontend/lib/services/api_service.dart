@@ -18,16 +18,27 @@ class ApiService {
 
   final Dio _dio;
 
+  // ── Simulations (topics) ───────────────────────────────────────────────────
+
+  /// Fetches all simulations from the backend.
+  /// Each simulation now includes subject_id, emoji, class_range
+  /// so the Flutter app doesn't need a hardcoded topic catalog.
   Future<List<SimulationDefinition>> fetchSimulations() async {
-    final response = await _request(() => _dio.get<Map<String, dynamic>>('/simulations'));
-    return ((response.data?['simulations'] ?? []) as List)
-        .map((e) => SimulationDefinition.fromJson(Map<String, dynamic>.from(e)))
+    final response =
+        await _request(() => _dio.get<Map<String, dynamic>>('/simulations'));
+    final list = (response.data?['simulations'] ?? []) as List<dynamic>;
+    return list
+        .map((e) => SimulationDefinition.fromJson(
+            Map<String, dynamic>.from(e as Map)))
         .toList();
   }
 
+  // ── Compute ────────────────────────────────────────────────────────────────
+
   Future<ProjectileResult> runProjectile(Map<String, double> body) async {
     final response = await _request(
-      () => _dio.post<Map<String, dynamic>>('/simulations/projectile', data: body),
+      () => _dio.post<Map<String, dynamic>>(
+          '/simulations/projectile', data: body),
     );
     return ProjectileResult.fromJson(response.data!);
   }
@@ -39,7 +50,8 @@ class ApiService {
     return WaveResult.fromJson(response.data!);
   }
 
-  Future<WaveSuperpositionResult> runSuperposition(List<Map<String, dynamic>> waves) async {
+  Future<WaveSuperpositionResult> runSuperposition(
+      List<Map<String, dynamic>> waves) async {
     final response = await _request(
       () => _dio.post<Map<String, dynamic>>(
           '/simulations/waves/superposition', data: {'waves': waves}),
@@ -47,7 +59,8 @@ class ApiService {
     return WaveSuperpositionResult.fromJson(response.data!);
   }
 
-  Future<CircuitResult> runCircuit(List<Map<String, dynamic>> components) async {
+  Future<CircuitResult> runCircuit(
+      List<Map<String, dynamic>> components) async {
     final response = await _request(
       () => _dio.post<Map<String, dynamic>>(
           '/simulations/circuits', data: {'components': components}),
@@ -55,29 +68,39 @@ class ApiService {
     return CircuitResult.fromJson(response.data!);
   }
 
+  // ── Runs / History ─────────────────────────────────────────────────────────
+
   Future<void> saveRun(String runId) async {
-    await _request(() => _dio.post('/runs/save', data: {'run_id': runId}));
+    await _request(
+        () => _dio.post('/runs/save', data: {'run_id': runId}));
   }
 
   Future<List<RunSummary>> fetchRuns() async {
-    final response = await _request(() => _dio.get<Map<String, dynamic>>('/runs'));
+    final response =
+        await _request(() => _dio.get<Map<String, dynamic>>('/runs'));
     return ((response.data?['runs'] ?? []) as List)
-        .map((e) => RunSummary.fromJson(Map<String, dynamic>.from(e)))
+        .map((e) =>
+            RunSummary.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();
   }
 
   Future<RunStats> fetchRunStats() async {
-    final response = await _request(() => _dio.get<Map<String, dynamic>>('/runs/stats'));
+    final response =
+        await _request(() => _dio.get<Map<String, dynamic>>('/runs/stats'));
     return RunStats.fromJson(response.data!);
   }
 
-  Future<Response<T>> _request<T>(Future<Response<T>> Function() action) async {
+  // ── Internal ───────────────────────────────────────────────────────────────
+
+  Future<Response<T>> _request<T>(
+      Future<Response<T>> Function() action) async {
     try {
       return await action();
     } on DioException catch (error) {
       final status = error.response?.statusCode;
       final detail = error.response?.data is Map<String, dynamic>
-          ? (error.response?.data as Map<String, dynamic>)['detail']?.toString()
+          ? (error.response?.data as Map<String, dynamic>)['detail']
+              ?.toString()
           : null;
       if (error.type == DioExceptionType.connectionError ||
           error.type == DioExceptionType.connectionTimeout) {
@@ -85,9 +108,12 @@ class ApiService {
             'Network error: backend is unreachable at ${AppConfig.apiBaseUrl}');
       }
       if (status == 400) throw Exception(detail ?? 'Invalid request');
-      if (status == 404) throw Exception(detail ?? 'Requested resource was not found');
-      if (status == 422) throw Exception(detail ?? 'Input validation failed');
-      if (status == 500) throw Exception('Server error: please check backend logs');
+      if (status == 404)
+        throw Exception(detail ?? 'Requested resource was not found');
+      if (status == 422)
+        throw Exception(detail ?? 'Input validation failed');
+      if (status == 500)
+        throw Exception('Server error: please check backend logs');
       throw Exception(detail ?? error.message ?? 'Request failed');
     }
   }
