@@ -47,6 +47,16 @@ Content and AI explanations available in English and Telugu.
 
 ---
 
+## 🎬 Demo Video
+
+Watch the full explanation and demo of EduViz:
+
+[![EduViz Demo Video](https://img.youtube.com/vi/mia53KvPKZA/maxresdefault.jpg)](https://youtu.be/mia53KvPKZA)
+
+**[▶ Watch on YouTube](https://youtu.be/mia53KvPKZA)**
+
+---
+
 ## 🛠️ Tech Stack
 
 ### Frontend
@@ -231,16 +241,4 @@ Content-Type: application/json
 
 ---
 
-## 🎨 Color Palette
 
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Primary Blue | `#378ADD` | Buttons, accents |
-| Background | `#0F0F18` | App background |
-| Surface | `#1A1A24` | Cards, panels |
-| Success Green | `#1D9E75` | Success states |
-| Warning Amber | `#EF9F27` | Warnings |
-| AI Purple | `#9C27B0` | AI features |
-| Error Red | `#E24B4A` | Errors |
-
----
