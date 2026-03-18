@@ -143,22 +143,6 @@ const topicCatalog = <TopicCatalogItem>[
   ),
   TopicCatalogItem(
     subjectId: 'physics',
-    simulationSlug: 'electric-circuits',
-    name: 'Electric Circuits',
-    category: 'Electricity',
-    emoji: '⚡',
-    classRange: [9, 10, 11, 12],
-  ),
-  TopicCatalogItem(
-    subjectId: 'physics',
-    simulationSlug: 'gravitation-orbits',
-    name: 'Gravitation & Orbits',
-    category: 'Mechanics',
-    emoji: '🪐',
-    classRange: [9, 10, 11, 12],
-  ),
-  TopicCatalogItem(
-    subjectId: 'physics',
     simulationSlug: 'newtons-laws',
     name: "Newton's Laws",
     category: 'Mechanics',
