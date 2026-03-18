@@ -1,7 +1,7 @@
 from typing import List
-
 import uuid
 from pydantic import BaseModel
+
 
 class SimulationParameterResponse(BaseModel):
     id: uuid.UUID
@@ -13,16 +13,22 @@ class SimulationParameterResponse(BaseModel):
     default_value: float
     step_size: float
 
+
 class SimulationListItem(BaseModel):
     id: uuid.UUID
+    subject_id: str          
     category: str
     name: str
     slug: str
+    emoji: str               
+    class_range: str         
     description: str
     parameters: List[SimulationParameterResponse]
 
+
 class SimulationListResponse(BaseModel):
     simulations: List[SimulationListItem]
+
 
 class SimulationDetailResponse(SimulationListItem):
     pass
