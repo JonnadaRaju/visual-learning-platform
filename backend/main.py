@@ -34,6 +34,12 @@ except Exception as e:
     print(f'Could not load compute router: {e}')
 
 try:
+    from routes.ai import router as ai_router
+    app.include_router(ai_router)
+except Exception as e:
+    print(f'Could not load AI router: {e}')
+
+try:
     from database import initialize_database, verify_database_connection
     from cache import verify_cache_connection
     initialize_database()

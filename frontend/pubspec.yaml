@@ -15,6 +15,9 @@ dependencies:
   uuid: ^4.4.0
   fl_chart: ^0.68.0
   cupertino_icons: ^1.0.8
+  speech_to_text: ^6.6.0
+  flutter_tts: ^4.0.2
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   flutter_test:

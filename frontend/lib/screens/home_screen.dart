@@ -7,6 +7,7 @@ import '../providers/compute_provider.dart';
 import 'class_selection_screen.dart';
 import 'history_screen.dart';
 import 'topic_list_screen.dart';
+import 'ai_assistant_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -210,18 +211,16 @@ class HomeScreen extends ConsumerWidget {
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  );
-                }),
-              ],
             ),
-          );
-        },
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AIAssistantScreen())),
+        backgroundColor: Colors.deepPurple,
+        icon: const Icon(Icons.smart_toy),
+        label: const Text('AI Tutor'),
       ),
     );
   }
