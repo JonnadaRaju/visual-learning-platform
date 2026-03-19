@@ -55,6 +55,24 @@ class _WavesScreenState extends ConsumerState<WavesScreen>
       _isPaused = !_isPaused;
       _isPaused ? _controller.stop() : _controller.repeat();
     });
+    // Save run when student starts/resumes animation
+    if (!_isPaused) {
+      ref.read(apiServiceProvider).saveGenericRun(
+        slug: 'waves-shm',
+        inputParams: {
+          'amplitude': _amplitude,
+          'frequency': _frequency,
+          'phase': _phase,
+          'wave_type': 'sine',
+        },
+        resultPayload: {
+          'period': double.parse(_period.toStringAsFixed(4)),
+          'angular_frequency': double.parse(_omega.toStringAsFixed(4)),
+          'show_cosine': _showCosine ? 1.0 : 0.0,
+          'show_superposition': _showSuper ? 1.0 : 0.0,
+        },
+      );
+    }
   }
 
   @override

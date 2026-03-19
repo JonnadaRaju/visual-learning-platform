@@ -70,6 +70,27 @@ class ApiService {
 
   // ── Runs / History ─────────────────────────────────────────────────────────
 
+  /// Save a locally-computed simulation run to Redis + PostgreSQL.
+  /// Fire-and-forget — never throws, local simulation still works if backend is down.
+  Future<void> saveGenericRun({
+    required String slug,
+    required Map<String, dynamic> inputParams,
+    required Map<String, dynamic> resultPayload,
+  }) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/simulations/run',
+        data: {
+          'slug': slug,
+          'input_params': inputParams,
+          'result_payload': resultPayload,
+        },
+      );
+    } catch (_) {
+      // Silently ignore — local simulation works regardless of backend
+    }
+  }
+
   Future<void> saveRun(String runId) async {
     await _request(
         () => _dio.post('/runs/save', data: {'run_id': runId}));

@@ -42,6 +42,23 @@ class _AtomicStructureScreenState extends ConsumerState<AtomicStructureScreen>
 
   _Element get _el => _elements[_atomicNumber]!;
 
+  void _saveRun(int atomicNumber) {
+    final el = _elements[atomicNumber]!;
+    ref.read(apiServiceProvider).saveGenericRun(
+      slug: 'atomic-structure',
+      inputParams: {'atomic_number': atomicNumber.toDouble()},
+      resultPayload: {
+        'symbol': el.symbol,
+        'name': el.name,
+        'protons': el.protons.toDouble(),
+        'neutrons': el.neutrons.toDouble(),
+        'valence_electrons': el.valenceElectrons.toDouble(),
+        'shells': el.shells.length.toDouble(),
+        'mass_number': (el.protons + el.neutrons).toDouble(),
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -147,7 +164,10 @@ class _AtomicStructureScreenState extends ConsumerState<AtomicStructureScreen>
                     value: _atomicNumber.toDouble(),
                     min: 1,
                     max: 18,
-                    onChanged: (v) => setState(() => _atomicNumber = v.round()),
+                    onChanged: (v) {
+                      setState(() => _atomicNumber = v.round());
+                      _saveRun(_atomicNumber);
+                    },
                   ),
                 ),
                 // Quick-pick element buttons
@@ -160,7 +180,10 @@ class _AtomicStructureScreenState extends ConsumerState<AtomicStructureScreen>
                       return Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: GestureDetector(
-                          onTap: () => setState(() => _atomicNumber = e.key),
+                          onTap: () {
+                            setState(() => _atomicNumber = e.key);
+                            _saveRun(e.key);
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),

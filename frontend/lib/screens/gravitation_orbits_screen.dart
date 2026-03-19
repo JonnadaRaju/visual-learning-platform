@@ -66,6 +66,22 @@ class _GravitationOrbitsScreenState extends ConsumerState<GravitationOrbitsScree
       _isPaused = !_isPaused;
       _isPaused ? _controller.stop() : _controller.repeat();
     });
+    // Save run when student resumes/starts simulation
+    if (!_isPaused) {
+      ref.read(apiServiceProvider).saveGenericRun(
+        slug: 'gravitation-orbits',
+        inputParams: {
+          'mass': _mass,
+          'radius': _radius,
+          'moon_enabled': _moonEnabled ? 1.0 : 0.0,
+        },
+        resultPayload: {
+          'orbital_speed': double.parse(_orbitalSpeed.toStringAsFixed(4)),
+          'period': double.parse(_period.toStringAsFixed(4)),
+          'gravity_force': double.parse(_gravityForce.toStringAsFixed(4)),
+        },
+      );
+    }
   }
 
   @override

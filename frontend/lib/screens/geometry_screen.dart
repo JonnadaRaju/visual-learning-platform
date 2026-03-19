@@ -55,13 +55,43 @@ class _GeometryScreenState extends ConsumerState<GeometryScreen>
   double get _perimeter {
     switch (_shapeIndex) {
       case 0:
-        // right-triangle hypotenuse
         final hyp = math.sqrt(_triBase * _triBase + _triHeight * _triHeight);
         return _triBase + _triHeight + hyp;
       case 1: return 2 * math.pi * _circleRadius;
       case 2: return 2 * (_rectW + _rectH);
       default: return 0;
     }
+  }
+
+  String get _shapeName {
+    switch (_shapeIndex) {
+      case 0: return 'triangle';
+      case 1: return 'circle';
+      case 2: return 'rectangle';
+      default: return 'unknown';
+    }
+  }
+
+  void _saveRun() {
+    final inputs = <String, dynamic>{'shape': _shapeIndex.toDouble()};
+    if (_shapeIndex == 0) {
+      inputs['base'] = _triBase;
+      inputs['height'] = _triHeight;
+    } else if (_shapeIndex == 1) {
+      inputs['radius'] = _circleRadius;
+    } else {
+      inputs['width'] = _rectW;
+      inputs['height'] = _rectH;
+    }
+    ref.read(apiServiceProvider).saveGenericRun(
+      slug: 'geometry',
+      inputParams: inputs,
+      resultPayload: {
+        'shape': _shapeName,
+        'area': double.parse(_area.toStringAsFixed(4)),
+        'perimeter': double.parse(_perimeter.toStringAsFixed(4)),
+      },
+    );
   }
 
   Future<void> _showAiExplanation(BuildContext context, String topic) async {
@@ -156,17 +186,17 @@ class _GeometryScreenState extends ConsumerState<GeometryScreen>
                 // Controls per shape
                 if (_shapeIndex == 0) ...[
                   _buildSlider('Base', _triBase, 1, 10, ' units',
-                      (v) => setState(() => _triBase = v)),
+                      (v) { setState(() => _triBase = v); _saveRun(); }),
                   _buildSlider('Height', _triHeight, 1, 8, ' units',
-                      (v) => setState(() => _triHeight = v)),
+                      (v) { setState(() => _triHeight = v); _saveRun(); }),
                 ],
                 if (_shapeIndex == 1) ...[
                   _buildSlider('Radius', _circleRadius, 1, 7, ' units',
-                      (v) => setState(() => _circleRadius = v)),
+                      (v) { setState(() => _circleRadius = v); _saveRun(); }),
                 ],
                 if (_shapeIndex == 2) ...[
                   _buildSlider('Width', _rectW, 1, 10, ' units',
-                      (v) => setState(() => _rectW = v)),
+                      (v) { setState(() => _rectW = v); _saveRun(); }),
                   _buildSlider('Height', _rectH, 1, 8, ' units',
                       (v) => setState(() => _rectH = v)),
                 ],
@@ -220,7 +250,10 @@ class _GeometryScreenState extends ConsumerState<GeometryScreen>
 
   Widget _shapeTab(int index, String label) => Expanded(
         child: GestureDetector(
-          onTap: () => setState(() => _shapeIndex = index),
+          onTap: () {
+            setState(() => _shapeIndex = index);
+            _saveRun();
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 9),
             decoration: BoxDecoration(

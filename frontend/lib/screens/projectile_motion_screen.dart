@@ -72,6 +72,21 @@ class _ProjectileMotionScreenState extends ConsumerState<ProjectileMotionScreen>
     _controller.reset();
     _controller.forward();
     setState(() => _isAnimating = true);
+    // Save run to backend (Redis + PostgreSQL)
+    ref.read(apiServiceProvider).saveGenericRun(
+      slug: 'projectile-motion',
+      inputParams: {
+        'angle': _angle,
+        'initial_velocity': _velocity,
+        'gravity': _gravity,
+        'initial_height': 0.0,
+      },
+      resultPayload: {
+        'max_height': double.parse(_maxHeight.toStringAsFixed(4)),
+        'range': double.parse(_range.toStringAsFixed(4)),
+        'time_of_flight': double.parse(_timeOfFlight.toStringAsFixed(4)),
+      },
+    );
   }
 
   void _reset() {

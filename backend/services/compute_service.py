@@ -25,7 +25,18 @@ from schemas.response import (
     WaveSuperpositionResponse,
 )
 
-TTL_SECONDS = {'projectile-motion': 600, 'waves-shm': 300, 'electric-circuits': 900}
+TTL_SECONDS = {
+    'projectile-motion':  600,
+    'waves-shm':          300,
+    'electric-circuits':  900,
+    'gravitation-orbits': 600,
+    'newtons-laws':       600,
+    'fluid-pressure':     600,
+    'linear-equations':   600,
+    'geometry':           600,
+    'atomic-structure':   900,
+    'acids-bases':        600,
+}
 
 
 def parse_uuid(value: str, field_name: str = 'value') -> uuid.UUID:
@@ -264,6 +275,29 @@ def compute_circuit(session_id: str, payload: CircuitRequest) -> CircuitResponse
     cache_set(cache_key, result, TTL_SECONDS[slug])
     run_id = insert_run(session_id, slug, body, result)
     return CircuitResponse(run_id=run_id, cache_hit=False, **result)
+
+
+def save_generic_run(
+    session_id: str,
+    slug: str,
+    input_params: Dict,
+    result_payload: Dict,
+) -> Dict:
+    """
+    Save a locally-computed simulation run to Redis + PostgreSQL.
+    Used by all simulation screens that compute locally in Flutter.
+    Returns {run_id, cache_hit}.
+    """
+    _ensure_simulation(slug)
+    body = dict(input_params)
+    cache_key = _build_cache_key(slug, body)
+    cached = cache_get(cache_key)
+    if cached:
+        run_id = insert_run(session_id, slug, body, cached)
+        return {'run_id': str(run_id), 'cache_hit': True}
+    cache_set(cache_key, result_payload, TTL_SECONDS.get(slug, 600))
+    run_id = insert_run(session_id, slug, body, result_payload)
+    return {'run_id': str(run_id), 'cache_hit': False}
 
 
 def save_run(session_id: str, run_id: uuid.UUID) -> SaveRunResponse:

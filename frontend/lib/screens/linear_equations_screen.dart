@@ -49,6 +49,24 @@ class _LinearEquationsScreenState extends ConsumerState<LinearEquationsScreen>
     return _m1 * x + _c1;
   }
 
+  void _saveRun() {
+    ref.read(apiServiceProvider).saveGenericRun(
+      slug: 'linear-equations',
+      inputParams: {
+        'm1': _m1,
+        'c1': _c1,
+        'm2': _m2,
+        'c2': _c2,
+        'show_second': _showSecond ? 1.0 : 0.0,
+      },
+      resultPayload: {
+        'intersect_x': _intersectX ?? 0.0,
+        'intersect_y': _intersectY ?? 0.0,
+        'parallel': _intersectX == null ? 1.0 : 0.0,
+      },
+    );
+  }
+
   Future<void> _showAiExplanation(BuildContext context, String topic) async {
     final api = ref.read(apiServiceProvider);
     showLoading(context);
@@ -127,15 +145,15 @@ class _LinearEquationsScreenState extends ConsumerState<LinearEquationsScreen>
                 // Line 1 controls
                 _sectionLabel('Line 1  —  y = ${_m1.toStringAsFixed(1)}x + ${_c1.toStringAsFixed(1)}',
                     const Color(0xFF378ADD)),
-                _buildSlider('Slope (m)', _m1, -5, 5, '', (v) => setState(() => _m1 = v)),
-                _buildSlider('Intercept (c)', _c1, -8, 8, '', (v) => setState(() => _c1 = v)),
+                _buildSlider('Slope (m)', _m1, -5, 5, '', (v) { setState(() => _m1 = v); _saveRun(); }),
+                _buildSlider('Intercept (c)', _c1, -8, 8, '', (v) { setState(() => _c1 = v); _saveRun(); }),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     const Text('Show Line 2', style: TextStyle(color: Colors.white70, fontSize: 13)),
                     Switch(
                       value: _showSecond,
-                      onChanged: (v) => setState(() => _showSecond = v),
+                      onChanged: (v) { setState(() => _showSecond = v); _saveRun(); },
                       activeColor: Colors.tealAccent,
                     ),
                     const Spacer(),
@@ -150,8 +168,8 @@ class _LinearEquationsScreenState extends ConsumerState<LinearEquationsScreen>
                 if (_showSecond) ...[
                   _sectionLabel('Line 2  —  y = ${_m2.toStringAsFixed(1)}x + ${_c2.toStringAsFixed(1)}',
                       Colors.tealAccent),
-                  _buildSlider('Slope (m)', _m2, -5, 5, '', (v) => setState(() => _m2 = v)),
-                  _buildSlider('Intercept (c)', _c2, -8, 8, '', (v) => setState(() => _c2 = v)),
+                  _buildSlider('Slope (m)', _m2, -5, 5, '', (v) { setState(() => _m2 = v); _saveRun(); }),
+                  _buildSlider('Intercept (c)', _c2, -8, 8, '', (v) { setState(() => _c2 = v); _saveRun(); }),
                 ],
                 const SizedBox(height: 8),
                 Container(

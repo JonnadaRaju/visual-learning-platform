@@ -12,6 +12,7 @@ from services.compute_service import (
     get_runs,
     parse_uuid,
     save_run,
+    save_generic_run,
 )
 from schemas.compute import CircuitRequest, ProjectileRequest, SaveRunRequest, WaveRequest, WaveSuperpositionRequest
 from schemas.response import CircuitResponse, ProjectileResponse, RunListResponse, RunStatsResponse, RunSummary, SaveRunResponse, WaveResponse, WaveSuperpositionResponse
@@ -43,6 +44,30 @@ def wave_superposition(payload: WaveSuperpositionRequest, session_id: str = Depe
 @router.post('/simulations/circuits', response_model=CircuitResponse)
 def circuits(payload: CircuitRequest, session_id: str = Depends(require_session_id)):
     return compute_circuit(session_id, payload)
+
+
+class GenericRunRequest(BaseModel):
+    slug: str
+    input_params: dict
+    result_payload: dict
+
+class GenericRunResponse(BaseModel):
+    run_id: str
+    cache_hit: bool
+
+@router.post('/simulations/run', response_model=GenericRunResponse)
+def generic_run(
+    payload: GenericRunRequest,
+    session_id: str = Depends(require_session_id),
+):
+    """Save a locally-computed simulation run to Redis + PostgreSQL."""
+    result = save_generic_run(
+        session_id=session_id,
+        slug=payload.slug,
+        input_params=payload.input_params,
+        result_payload=payload.result_payload,
+    )
+    return GenericRunResponse(**result)
 
 
 @router.post('/runs/save', response_model=SaveRunResponse)

@@ -61,6 +61,27 @@ class _AcidsBasesScreenState extends ConsumerState<AcidsBasesScreen>
 
   double get _activePH => _showTitration ? _mixedPH.clamp(0, 14) : _pH;
 
+  void _saveRun() {
+    final ph = _activePH;
+    ref.read(apiServiceProvider).saveGenericRun(
+      slug: 'acids-bases',
+      inputParams: {
+        'ph': _pH,
+        'show_titration': _showTitration ? 1.0 : 0.0,
+        'acid_vol': _acidVol,
+        'base_vol': _baseVol,
+        'acid_conc': _acidConc,
+        'base_conc': _baseConc,
+      },
+      resultPayload: {
+        'active_ph': double.parse(ph.toStringAsFixed(4)),
+        'type': ph < 7 ? 'acid' : ph > 7 ? 'base' : 'neutral',
+        'label': _pHLabel(ph),
+        'h_concentration': double.parse(math.pow(10, -ph).toStringAsFixed(8)),
+      },
+    );
+  }
+
   Color _pHColor(double ph) {
     if (ph < 2) return const Color(0xFFB71C1C);
     if (ph < 4) return const Color(0xFFE53935);
@@ -186,7 +207,7 @@ class _AcidsBasesScreenState extends ConsumerState<AcidsBasesScreen>
                 ),
                 const SizedBox(height: 12),
                 if (!_showTitration) ...[
-                  _buildSlider('pH Value', _pH, 0, 14, '', (v) => setState(() => _pH = v)),
+                  _buildSlider('pH Value', _pH, 0, 14, '', (v) { setState(() => _pH = v); _saveRun(); }),
                   // Quick pick substances
                   SizedBox(
                     height: 32,
@@ -195,7 +216,10 @@ class _AcidsBasesScreenState extends ConsumerState<AcidsBasesScreen>
                       children: _commonSubstances.map((s) => Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: GestureDetector(
-                          onTap: () => setState(() => _pH = s.$2),
+                          onTap: () {
+                            setState(() => _pH = s.$2);
+                            _saveRun();
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
@@ -218,13 +242,13 @@ class _AcidsBasesScreenState extends ConsumerState<AcidsBasesScreen>
                   ),
                 ] else ...[
                   _buildSlider('Acid Volume (mL)', _acidVol, 10, 100, ' mL',
-                      (v) => setState(() => _acidVol = v)),
+                      (v) { setState(() => _acidVol = v); _saveRun(); }),
                   _buildSlider('Base Volume (mL)', _baseVol, 10, 100, ' mL',
-                      (v) => setState(() => _baseVol = v)),
+                      (v) { setState(() => _baseVol = v); _saveRun(); }),
                   _buildSlider('Acid Conc. (mol/L)', _acidConc, 0.01, 0.5, ' M',
-                      (v) => setState(() => _acidConc = v)),
+                      (v) { setState(() => _acidConc = v); _saveRun(); }),
                   _buildSlider('Base Conc. (mol/L)', _baseConc, 0.01, 0.5, ' M',
-                      (v) => setState(() => _baseConc = v)),
+                      (v) { setState(() => _baseConc = v); _saveRun(); }),
                 ],
                 const SizedBox(height: 8),
                 Container(
@@ -260,7 +284,10 @@ class _AcidsBasesScreenState extends ConsumerState<AcidsBasesScreen>
 
   Widget _modeTab(bool titration, String label) => Expanded(
         child: GestureDetector(
-          onTap: () => setState(() => _showTitration = titration),
+          onTap: () {
+            setState(() => _showTitration = titration);
+            _saveRun();
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 9),
             decoration: BoxDecoration(

@@ -76,6 +76,20 @@ class _NewtonsLawsScreenState extends ConsumerState<NewtonsLawsScreen>
     });
     _controller.reset();
     _controller.forward();
+    // Save run to backend (Redis + PostgreSQL)
+    ref.read(apiServiceProvider).saveGenericRun(
+      slug: 'newtons-laws',
+      inputParams: {
+        'mass': _mass,
+        'force': _force,
+        'friction': _friction,
+      },
+      resultPayload: {
+        'net_force': double.parse(_netForce.toStringAsFixed(4)),
+        'acceleration': double.parse(_acceleration.toStringAsFixed(4)),
+        'friction_force': double.parse((_friction * _mass * _g).toStringAsFixed(4)),
+      },
+    );
   }
 
   void _reset() {

@@ -44,6 +44,26 @@ class _ElectricCircuitsScreenState extends ConsumerState<ElectricCircuitsScreen>
   double get _v1 => _series ? _current * _r1 : _voltage;
   double get _v2 => _series ? _current * _r2 : _voltage;
 
+  void _saveRun() {
+    ref.read(apiServiceProvider).saveGenericRun(
+      slug: 'electric-circuits',
+      inputParams: {
+        'voltage': _voltage,
+        'r1': _r1,
+        'r2': _r2,
+        'series': _series ? 1.0 : 0.0,
+      },
+      resultPayload: {
+        'current': double.parse(_current.toStringAsFixed(6)),
+        'total_resistance': double.parse(_totalResistance.toStringAsFixed(4)),
+        'power': double.parse(_power.toStringAsFixed(6)),
+        'v_across_r1': double.parse(_v1.toStringAsFixed(4)),
+        'v_across_r2': double.parse(_v2.toStringAsFixed(4)),
+        'type': _series ? 'series' : 'parallel',
+      },
+    );
+  }
+
   Future<void> _showAiExplanation(BuildContext context, String topic) async {
     final api = ref.read(apiServiceProvider);
     showLoading(context);
@@ -168,10 +188,14 @@ class _ElectricCircuitsScreenState extends ConsumerState<ElectricCircuitsScreen>
                     ),
                     child: Row(
                       children: [
-                        _buildToggleTab('Series', _series,
-                            () => setState(() => _series = true)),
-                        _buildToggleTab('Parallel', !_series,
-                            () => setState(() => _series = false)),
+                        _buildToggleTab('Series', _series, () {
+                          setState(() => _series = true);
+                          _saveRun();
+                        }),
+                        _buildToggleTab('Parallel', !_series, () {
+                          setState(() => _series = false);
+                          _saveRun();
+                        }),
                       ],
                     ),
                   ),

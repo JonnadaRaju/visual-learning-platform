@@ -104,6 +104,20 @@ class _FluidPressureScreenState extends ConsumerState<FluidPressureScreen>
     _calculateEquilibrium();
     _controller.reset();
     _controller.forward();
+    // Save run to backend (Redis + PostgreSQL)
+    ref.read(apiServiceProvider).saveGenericRun(
+      slug: 'fluid-pressure',
+      inputParams: {
+        'object_density': _objectDensity,
+        'fluid_density': _fluidDensity,
+        'object_size': _objectSize,
+      },
+      resultPayload: {
+        'status': _status,
+        'submerged_ratio': double.parse(_submergedRatio.toStringAsFixed(4)),
+        'buoyancy': _objectDensity < _fluidDensity ? 'floats' : 'sinks',
+      },
+    );
   }
 
   void _reset() {
