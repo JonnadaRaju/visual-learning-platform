@@ -76,7 +76,6 @@ Watch the full explanation and demo of EduViz:
 | FastAPI | Python web framework |
 | PostgreSQL | Primary database |
 | Redis | Caching layer |
-| OpenRouter | AI/LLM integration |
 
 ### Infrastructure
 | Service | Purpose |
