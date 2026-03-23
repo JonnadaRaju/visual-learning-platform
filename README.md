@@ -51,9 +51,9 @@ Content and AI explanations available in English and Telugu.
 
 Watch the full explanation and demo of EduViz:
 
-[![EduViz Demo Video](https://img.youtube.com/vi/mia53KvPKZA/maxresdefault.jpg)](https://youtu.be/V7YJHFFvtlY)
+[![EduViz Demo Video](https://img.youtube.com/vi/V7YJHFFvtlY/maxresdefault.jpg)](https://youtu.be/V7YJHFFvtlY)
 
-**[▶ Watch on YouTube](https://youtu.be/mia53KvPKZA)**
+**[▶ Watch on YouTube](https://youtu.be/V7YJHFFvtlY)**
 
 ---
 
@@ -240,5 +240,3 @@ Content-Type: application/json
 ```
 
 ---
-
-
